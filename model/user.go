@@ -12,6 +12,7 @@ type User struct {
 	Email    string `json:"email" gorm:"unique;not null"`
 	Password string `json:"-" gorm:"not null"` // 密码字段，JSON序列化时忽略
 	Age      int    `json:"age"`
+	Phone    string `json:"phone" gorm:"type:varchar(11);unique;comment:手机号码;default:''"`
 }
 
 func (User) TableName() string {

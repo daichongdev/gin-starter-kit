@@ -13,13 +13,13 @@ var scheduler *cron.Cron
 // Init 初始化定时任务
 func Init() {
 	scheduler = cron.New()
-	
+
 	// 添加定时任务
 	if err := addJobs(); err != nil {
 		logger.Error("添加定时任务失败", zap.Error(err))
 		return
 	}
-	
+
 	// 启动调度器
 	scheduler.Start()
 	logger.Info("定时任务启动成功")

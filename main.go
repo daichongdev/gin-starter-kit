@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
+	"gin-demo/model"
 	"gin-demo/pkg/cron"
 	"gin-demo/pkg/logger"
 	"gin-demo/router"
@@ -46,6 +47,11 @@ func main() {
 
 	// 初始化数据库
 	database.InitDB()
+
+	// 自动迁移所有注册的模型
+	if err := model.Registry.AutoMigrate(); err != nil {
+		logger.Fatal("自动迁移失败", zap.Error(err))
+	}
 
 	// 初始化定时任务
 	cron.Init()
