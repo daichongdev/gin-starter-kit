@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
+	"gin-demo/pkg/cron"
 	"gin-demo/pkg/logger"
 	"gin-demo/router"
 	"net/http"
@@ -46,6 +47,9 @@ func main() {
 	// 初始化数据库
 	database.InitDB()
 
+	// 初始化定时任务
+	cron.Init()
+
 	// 初始化路由
 	r := router.SetupRouter()
 
@@ -78,6 +82,9 @@ func main() {
 	<-quit
 	
 	logger.Info("Shutting down server...")
+
+	// 停止定时任务
+	cron.Stop()
 
 	// 优雅关闭服务器
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
