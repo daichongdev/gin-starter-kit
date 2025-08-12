@@ -20,7 +20,7 @@ func AccessLogMiddleware() gin.HandlerFunc {
 
 		// 生成链路追踪ID
 		traceID := generateTraceID()
-		
+
 		// 设置当前goroutine的链路追踪上下文
 		logger.SetTraceContext(traceID)
 		defer logger.ClearTraceContext()
@@ -125,9 +125,4 @@ func randomString(length int) string {
 		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
 	}
 	return string(b)
-}
-
-// GetTraceID 获取当前请求的链路追踪ID（保持向后兼容）
-func GetTraceID(c *gin.Context) string {
-	return logger.GetCurrentTraceID()
 }

@@ -20,8 +20,6 @@ type SQLLog struct {
 }
 
 var (
-	// 使用context来存储链路追踪信息
-	traceContextKey = "trace_context"
 	// 当前goroutine的链路追踪上下文
 	currentTraceContext *TraceContext
 	traceContextMutex   sync.RWMutex

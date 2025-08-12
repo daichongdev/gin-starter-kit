@@ -297,7 +297,7 @@ func Fatal(msg string, fields ...zap.Field) {
 	}
 }
 
-// 结构化日志方法
+// Debugf 结构化日志方法
 func Debugf(template string, args ...interface{}) {
 	if SugarLogger != nil {
 		SugarLogger.Debugf(template, args...)

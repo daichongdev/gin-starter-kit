@@ -100,28 +100,3 @@ type PaginationMetaEnhanced struct {
 	From        int   `json:"from"`
 	To          int   `json:"to"`
 }
-
-// NewPaginateResultEnhanced 创建增强版分页结果
-func NewPaginateResultEnhanced(data interface{}, pagination *PaginationRequest, total int64) *PaginateResult {
-	pageSize := pagination.GetPageSize()
-	currentPage := pagination.GetPage()
-	totalPages := int(total+int64(pageSize)-1) / pageSize
-
-	to := currentPage * pageSize
-	if to > int(total) {
-		to = int(total)
-	}
-	if total == 0 {
-
-	}
-
-	return &PaginateResult{
-		Data: data,
-		Meta: PaginationMeta{
-			CurrentPage: currentPage,
-			PerPage:     pageSize,
-			Total:       total,
-			TotalPages:  totalPages,
-		},
-	}
-}
