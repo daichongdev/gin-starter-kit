@@ -1,0 +1,11 @@
+{"level":"info","timestamp":"2025-08-12T11:36:36.479+0800","message":"Application starting","app_name":"gin-demo","version":"1.0.0","cpu_cores":8}
+{"level":"info","timestamp":"2025-08-12T11:36:36.480+0800","message":"Connecting to MySQL","host":"127.0.0.1","port":3306,"database":"daka_dev"}
+{"level":"info","timestamp":"2025-08-12T11:36:36.482+0800","message":"MySQL connected successfully","max_idle_conns":20,"max_open_conns":100}
+{"level":"info","timestamp":"2025-08-12T11:36:36.484+0800","message":"Redis connected successfully","pool_size":20,"min_idle_conns":5}
+{"level":"info","timestamp":"2025-08-12T11:36:36.484+0800","message":"All databases initialized successfully"}
+{"level":"info","timestamp":"2025-08-12T11:36:36.484+0800","message":"Server starting","address":":8080","read_timeout":30,"write_timeout":30}
+{"level":"info","timestamp":"2025-08-12T11:36:52.993+0800","message":"Shutting down server..."}
+{"level":"info","timestamp":"2025-08-12T11:36:52.994+0800","message":"Closing database connections..."}
+{"level":"info","timestamp":"2025-08-12T11:36:52.994+0800","message":"Redis connection closed"}
+{"level":"info","timestamp":"2025-08-12T11:36:52.995+0800","message":"MySQL connection closed"}
+{"level":"info","timestamp":"2025-08-12T11:36:52.995+0800","message":"Server exited gracefully"}

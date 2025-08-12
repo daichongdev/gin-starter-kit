@@ -1,0 +1,91 @@
+server:
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 10s
+  max_header_bytes: 1048576  # 1MB
+
+database:
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    username: root
+    password: 123456
+    database: daka_dev
+    charset: utf8mb4
+    parse_time: true
+    loc: Local
+    # 连接池优化
+    max_idle_conns: 20
+    max_open_conns: 100
+    conn_max_lifetime: 3600s
+    conn_max_idle_time: 1800s
+
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: ""
+    db: 0
+    # 连接池优化
+    pool_size: 20
+    min_idle_conns: 5
+    conn_max_idle_time: 1800s
+    pool_timeout: 30s
+    dial_timeout: 10s
+    read_timeout: 10s
+    write_timeout: 10s
+
+app:
+  name: gin-demo
+  version: 1.0.0
+
+# JWT认证配置
+jwt:
+  # JWT密钥（生产环境应使用环境变量）
+  secret: "your-super-secret-jwt-key-change-this-in-production-2024"
+  # Token过期时间（小时）
+  expires_hours: 168  # 7天
+  # 刷新Token过期时间（小时）
+  refresh_expires_hours: 720  # 30天
+  # 签发者
+  issuer: "gin-demo"
+  
+# 完善的日志配置
+log:
+  level: "info"
+  format: "json"
+  enable_color: true
+  enable_caller: false
+  
+  # 访问日志配置
+  access:
+    enabled: true
+    filename: "./logs/access.log"
+    max_size: 10
+    max_backups: 5
+    max_age: 30
+    compress: true
+    # 全链路追踪配置
+    trace:
+      enabled: true
+      include_request_body: true
+      include_response_body: false
+      max_body_size: 1000
+      mask_sensitive_data: true
+      include_headers: true
+      include_sql_details: true
+      include_handler_info: true
+      slow_request_threshold: "1s"
+  
+  # 数据库日志配置
+  database:
+    enabled: true
+    level: "info"
+    slow_threshold: 200
+    log_all_sql: true
+    ignore_record_not_found: true
+    filename: "./logs/database.log"
+    max_size: 10
+    max_backups: 5
+    max_age: 30
+    compress: true
