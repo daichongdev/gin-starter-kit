@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// JWT认证中间件
+// JWTAuthMiddleware JWT认证中间件
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从Header中获取Authorization
@@ -39,7 +39,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			} else {
 				message = "无效的JWT令牌"
 			}
-			
+
 			c.JSON(http.StatusUnauthorized, model.ErrorResponse(message))
 			c.Abort()
 			return
@@ -53,7 +53,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// 可选的JWT认证中间件（不强制要求认证）
+// OptionalJWTAuthMiddleware 可选的JWT认证中间件（不强制要求认证）
 func OptionalJWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -69,12 +69,4 @@ func OptionalJWTAuthMiddleware() gin.HandlerFunc {
 		}
 		c.Next()
 	}
-}
-
-// 辅助函数
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 全局错误处理中间件
+// ErrorHandlerMiddleware 全局错误处理中间件
 func ErrorHandlerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
@@ -16,7 +16,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 		// 检查是否有错误发生
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last()
-			
+
 			// 记录错误日志
 			logger.Error("Request error occurred",
 				logger.String("path", c.Request.URL.Path),
@@ -37,7 +37,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 	}
 }
 
-// 404处理器
+// NotFoundHandler 404处理器
 func NotFoundHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("Route not found",
@@ -50,7 +50,7 @@ func NotFoundHandler() gin.HandlerFunc {
 	}
 }
 
-// 405方法不允许处理器
+// MethodNotAllowedHandler 405方法不允许处理器
 func MethodNotAllowedHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Warn("Method not allowed",

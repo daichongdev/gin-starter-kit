@@ -19,7 +19,7 @@ func NewAuthController() *AuthController {
 	}
 }
 
-// 用户注册
+// Register 用户注册
 func (c *AuthController) Register(ctx *gin.Context) {
 	var req model.RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -40,7 +40,7 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, model.SuccessResponse("注册成功", response))
 }
 
-// 用户登录
+// Login 用户登录
 func (c *AuthController) Login(ctx *gin.Context) {
 	var req model.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -61,7 +61,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, model.SuccessResponse("登录成功", response))
 }
 
-// 获取当前用户信息
+// GetProfile 获取当前用户信息
 func (c *AuthController) GetProfile(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
@@ -78,7 +78,7 @@ func (c *AuthController) GetProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, model.SuccessResponse("获取用户信息成功", user))
 }
 
-// 刷新Token
+// RefreshToken 刷新Token
 func (c *AuthController) RefreshToken(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {

@@ -1,17 +1,17 @@
 package model
 
-// 统一API响应结构
+// APIResponse 统一API响应结构
 type APIResponse struct {
 	Status  string      `json:"status"`  // "success" 或 "error"
 	Message string      `json:"message"` // 响应消息
 	Data    interface{} `json:"data"`    // 响应数据，成功时包含具体数据，失败时为null
 }
 
-// 分页响应结构
+// PaginationResponse 分页响应结构
 type PaginationResponse struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Status  string         `json:"status"`
+	Message string         `json:"message"`
+	Data    interface{}    `json:"data"`
 	Meta    PaginationMeta `json:"meta"`
 }
 
@@ -22,7 +22,7 @@ type PaginationMeta struct {
 	TotalPages  int   `json:"total_pages"`
 }
 
-// 响应构造函数
+// SuccessResponse 响应构造函数
 func SuccessResponse(message string, data interface{}) APIResponse {
 	return APIResponse{
 		Status:  "success",
