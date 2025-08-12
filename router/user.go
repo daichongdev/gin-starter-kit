@@ -15,8 +15,11 @@ func SetupUserRoutes(api *gin.RouterGroup) {
 	// 应用JWT认证中间件到所有用户路由
 	userGroup.Use(middleware.JWTAuthMiddleware())
 	{
-		userGroup.POST("/", userController.CreateUser)
-		userGroup.GET("/", userController.GetAllUsers)
-		userGroup.GET("/:id", userController.GetUser)
+		userGroup.POST("/", userController.CreateUser)                    // 创建用户
+		userGroup.GET("/", userController.GetAllUsers)                   // 获取所有用户（不分页）
+		userGroup.GET("/paginated", userController.GetUsersWithPagination) // 分页获取用户列表
+		userGroup.GET("/:id", userController.GetUser)                    // 获取单个用户
+		userGroup.PUT("/:id", userController.UpdateUser)                 // 更新用户
+		userGroup.DELETE("/:id", userController.DeleteUser)              // 删除用户
 	}
 }

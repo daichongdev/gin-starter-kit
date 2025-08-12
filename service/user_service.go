@@ -104,3 +104,52 @@ func (s *UserService) DeleteUser(id uint) error {
 
 	return s.userRepo.Delete(id)
 }
+
+// GetUsersWithPagination 分页获取用户列表
+func (s *UserService) GetUsersWithPagination(pagination *model.PaginationRequest) (*model.PaginateResult, error) {
+	users, total, err := s.userRepo.GetAllWithPagination(pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []model.UserResponse
+	for _, user := range users {
+		responses = append(responses, model.UserResponse{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+			Age:   user.Age,
+		})
+	}
+
+	// 使用分页结果构造器
+	result := model.NewPaginateResult(map[string]interface{}{
+		"users": responses,
+	}, pagination, total)
+
+	return result, nil
+}
+
+// SearchUsersWithPagination 带搜索的分页查询用户
+func (s *UserService) SearchUsersWithPagination(pagination *model.PaginationRequest, keyword string) (*model.PaginateResult, error) {
+	users, total, err := s.userRepo.GetAllWithPaginationAndSearch(pagination, keyword)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []model.UserResponse
+	for _, user := range users {
+		responses = append(responses, model.UserResponse{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+			Age:   user.Age,
+		})
+	}
+
+	result := model.NewPaginateResult(map[string]interface{}{
+		"users": responses,
+	}, pagination, total)
+
+	return result, nil
+}
