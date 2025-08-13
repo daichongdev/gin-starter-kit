@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"gin-demo/config"
 	"gin-demo/database"
 	"gin-demo/model"
 	"net/http"
@@ -31,23 +32,63 @@ func NewRedisRateLimiter(limit int, window time.Duration) *RedisRateLimiter {
 // 默认限流器
 var (
 	defaultLimiter *RedisRateLimiter
+	authLimiter    *RedisRateLimiter
 	once           sync.Once
 )
 
-// getDefaultLimiter 获取默认限流器（延迟初始化）
+// getDefaultLimiter 获取默认限流器（从配置文件读取参数）
 func getDefaultLimiter() *RedisRateLimiter {
 	once.Do(func() {
-		defaultLimiter = NewRedisRateLimiter(30, time.Minute)
+		defaultLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Global.Limit,
+			config.Cfg.Server.RateLimit.Global.Window,
+		)
+		authLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Auth.Limit,
+			config.Cfg.Server.RateLimit.Auth.Window,
+		)
 	})
 	return defaultLimiter
 }
 
-// RateLimitMiddleware 基于Redis的限流中间件
+// getAuthLimiter 获取认证限流器
+func getAuthLimiter() *RedisRateLimiter {
+	once.Do(func() {
+		defaultLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Global.Limit,
+			config.Cfg.Server.RateLimit.Global.Window,
+		)
+		authLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Auth.Limit,
+			config.Cfg.Server.RateLimit.Auth.Window,
+		)
+	})
+	return authLimiter
+}
+
+// RateLimitMiddleware 简单的限流中间件（从配置文件读取参数）
 func RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
+		limiter := getDefaultLimiter()
 
-		if !getDefaultLimiter().Allow(c.Request.Context(), ip) {
+		if !limiter.Allow(c.Request.Context(), ip) {
+			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// AuthRateLimitMiddleware 认证接口限流中间件（从配置文件读取参数）
+func AuthRateLimitMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+		limiter := getAuthLimiter()
+
+		if !limiter.Allow(c.Request.Context(), ip) {
 			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return

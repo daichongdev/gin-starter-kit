@@ -1,8 +1,11 @@
 package model
 
 import (
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
+	"regexp"
 	"time"
 )
 
@@ -13,7 +16,7 @@ type User struct {
 	Password string `json:"-" gorm:"not null"` // 密码字段，JSON序列化时忽略
 	Age      int    `json:"age"`
 	Phone    string `json:"phone" gorm:"type:varchar(11);unique;comment:手机号码;default:''"`
-	
+
 	// GORM默认字段放在最后
 	CreatedAt time.Time      `json:"created_at" gorm:"comment:创建时间"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"comment:更新时间"`
@@ -26,11 +29,29 @@ func (User) TableName() string {
 
 // RegisterRequest 注册请求
 type RegisterRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-	Age      int    `json:"age" binding:"min=0"`
-	Phone    string `json:"phone" binding:"required,len=11"`
+	Name     string `json:"name" binding:"required,min=2,max=50,alphaunicode"`
+	Email    string `json:"email" binding:"required,email,max=100"`
+	Password string `json:"password" binding:"required,min=8,max=128,password"`
+	Age      int    `json:"age" binding:"min=0,max=150"`
+	Phone    string `json:"phone" binding:"required,len=11,numeric"`
+}
+
+// 添加自定义验证器
+func init() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("password", validatePassword)
+	}
+}
+
+func validatePassword(fl validator.FieldLevel) bool {
+	password := fl.Field().String()
+	// 密码必须包含大小写字母、数字和特殊字符
+	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
+	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
+	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
+	hasSpecial := regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`).MatchString(password)
+
+	return hasUpper && hasLower && hasNumber && hasSpecial
 }
 
 // LoginRequest 登录请求

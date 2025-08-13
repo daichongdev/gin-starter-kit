@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// 验证配置
+// Validate 验证配置
 func (c *Config) Validate() error {
 	if err := c.Server.Validate(); err != nil {
 		return fmt.Errorf("server config error: %w", err)
@@ -22,7 +22,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// 验证服务器配置
+// Validate 验证服务器配置
 func (c *ServerConfig) Validate() error {
 	if c.Port <= 0 || c.Port > 65535 {
 		return errors.New("invalid port number")
@@ -30,7 +30,7 @@ func (c *ServerConfig) Validate() error {
 	return nil
 }
 
-// 验证数据库配置
+// Validate 验证数据库配置
 func (c *DatabaseConfig) Validate() error {
 	if c.MySQL.Host == "" {
 		return errors.New("mysql host is required")
@@ -41,7 +41,7 @@ func (c *DatabaseConfig) Validate() error {
 	return nil
 }
 
-// 验证JWT配置
+// Validate 验证JWT配置
 func (c *JWTConfig) Validate() error {
 	if len(c.Secret) < 32 {
 		return errors.New("jwt secret must be at least 32 characters")

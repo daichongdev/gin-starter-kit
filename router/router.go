@@ -21,11 +21,8 @@ func SetupRouter() *gin.Engine {
 	// 添加全局错误处理中间件
 	r.Use(middleware.ErrorHandlerMiddleware())
 
-	// 添加基于Redis的限流中间件 (100次/分钟)
+	// 添加限流中间件
 	r.Use(middleware.RateLimitMiddleware())
-	
-	// 添加限流信息到响应头
-	r.Use(middleware.RateLimitInfoMiddleware())
 
 	// GZIP压缩中间件
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -35,7 +32,7 @@ func SetupRouter() *gin.Engine {
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Window"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))

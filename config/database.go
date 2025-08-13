@@ -7,13 +7,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// 数据库配置
+// DatabaseConfig 数据库配置
 type DatabaseConfig struct {
 	MySQL *MySQLConfig `mapstructure:"mysql"`
 	Redis *RedisConfig `mapstructure:"redis"`
 }
 
-// MySQL配置
+// MySQLConfig MySQL配置
 type MySQLConfig struct {
 	Host            string        `mapstructure:"host"`
 	Port            int           `mapstructure:"port"`
@@ -32,7 +32,7 @@ type MySQLConfig struct {
 	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
 }
 
-// Redis配置
+// RedisConfig Redis配置
 type RedisConfig struct {
 	Host            string        `mapstructure:"host"`
 	Port            int           `mapstructure:"port"`
@@ -50,12 +50,12 @@ type RedisConfig struct {
 
 // 设置数据库默认值
 func setDatabaseDefaults() {
-	// MySQL defaults
-	viper.SetDefault("database.mysql.host", "localhost")
+	// MySQL 默认值 - 不再从环境变量读取
+	viper.SetDefault("database.mysql.host", "127.0.0.1")
 	viper.SetDefault("database.mysql.port", 3306)
 	viper.SetDefault("database.mysql.username", "root")
 	viper.SetDefault("database.mysql.password", "")
-	viper.SetDefault("database.mysql.database", "gin_demo")
+	viper.SetDefault("database.mysql.database", "daka_dev")
 	viper.SetDefault("database.mysql.charset", "utf8mb4")
 	viper.SetDefault("database.mysql.parse_time", true)
 	viper.SetDefault("database.mysql.loc", "Local")
@@ -67,7 +67,7 @@ func setDatabaseDefaults() {
 	viper.SetDefault("database.mysql.read_timeout", "30s")
 	viper.SetDefault("database.mysql.write_timeout", "30s")
 
-	// Redis defaults
+	// Redis 默认值
 	viper.SetDefault("database.redis.host", "localhost")
 	viper.SetDefault("database.redis.port", 6379)
 	viper.SetDefault("database.redis.password", "")
@@ -82,14 +82,14 @@ func setDatabaseDefaults() {
 	viper.SetDefault("database.redis.write_timeout", "10s")
 }
 
-// 获取MySQL DSN
+// GetDSN 获取MySQL DSN
 func (c *MySQLConfig) GetDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%t&loc=%s&timeout=%s&readTimeout=%s&writeTimeout=%s",
 		c.Username, c.Password, c.Host, c.Port, c.Database, c.Charset, c.ParseTime, c.Loc,
 		c.DialTimeout, c.ReadTimeout, c.WriteTimeout)
 }
 
-// 获取Redis地址
+// GetAddr 获取Redis地址
 func (c *RedisConfig) GetAddr() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
