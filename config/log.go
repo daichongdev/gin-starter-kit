@@ -2,21 +2,21 @@ package config
 
 import "github.com/spf13/viper"
 
-// 日志配置
+// LogConfig 日志配置
 type LogConfig struct {
-	Level            string            `mapstructure:"level"`
-	Format           string            `mapstructure:"format"`
-	EnableColor      bool              `mapstructure:"enable_color"`
-	EnableCaller     bool              `mapstructure:"enable_caller"`
-	EnableStacktrace bool              `mapstructure:"enable_stacktrace"`
-	Console          *ConsoleLogConfig `mapstructure:"console"`
-	File             *FileLogConfig    `mapstructure:"file"`
-	ErrorFile        *FileLogConfig    `mapstructure:"error_file"`
+	Level            string             `mapstructure:"level"`
+	Format           string             `mapstructure:"format"`
+	EnableColor      bool               `mapstructure:"enable_color"`
+	EnableCaller     bool               `mapstructure:"enable_caller"`
+	EnableStacktrace bool               `mapstructure:"enable_stacktrace"`
+	Console          *ConsoleLogConfig  `mapstructure:"console"`
+	File             *FileLogConfig     `mapstructure:"file"`
+	ErrorFile        *FileLogConfig     `mapstructure:"error_file"`
 	Database         *DatabaseLogConfig `mapstructure:"database"`
-	Access           *AccessLogConfig  `mapstructure:"access"`
+	Access           *AccessLogConfig   `mapstructure:"access"`
 }
 
-// 控制台日志配置
+// ConsoleLogConfig 控制台日志配置
 type ConsoleLogConfig struct {
 	Enabled     bool   `mapstructure:"enabled"`
 	Level       string `mapstructure:"level"`
@@ -24,7 +24,7 @@ type ConsoleLogConfig struct {
 	EnableColor bool   `mapstructure:"enable_color"`
 }
 
-// 文件日志配置
+// FileLogConfig 文件日志配置
 type FileLogConfig struct {
 	Enabled    bool   `mapstructure:"enabled"`
 	Level      string `mapstructure:"level"`
@@ -36,7 +36,7 @@ type FileLogConfig struct {
 	Compress   bool   `mapstructure:"compress"`
 }
 
-// 数据库日志配置
+// DatabaseLogConfig 数据库日志配置
 type DatabaseLogConfig struct {
 	Enabled              bool   `mapstructure:"enabled"`
 	Level                string `mapstructure:"level"`
@@ -50,7 +50,7 @@ type DatabaseLogConfig struct {
 	Compress             bool   `mapstructure:"compress"`
 }
 
-// 访问日志配置
+// AccessLogConfig 访问日志配置
 type AccessLogConfig struct {
 	Enabled    bool   `mapstructure:"enabled"`
 	Format     string `mapstructure:"format"`

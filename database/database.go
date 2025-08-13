@@ -94,19 +94,30 @@ func initRedis(cfg *config.Config) {
 		WriteTimeout:    cfg.Database.Redis.WriteTimeout,
 	})
 
-	// 测试连接
+	logger.Info("Connecting to Redis",
+		logger.String("host", cfg.Database.Redis.Host),
+		logger.Int("port", cfg.Database.Redis.Port),
+		logger.Int("db", cfg.Database.Redis.DB),
+	)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := RDB.Ping(ctx).Result(); err != nil {
-		logger.Warn("Failed to connect to Redis", logger.Err(err))
-		// Redis连接失败不应该导致程序退出，只是记录警告
-	} else {
-		logger.Info("Redis connected successfully",
-			logger.Int("pool_size", cfg.Database.Redis.PoolSize),
-			logger.Int("min_idle_conns", cfg.Database.Redis.MinIdleConns),
-		)
+	if cfg.Database.Redis.Password != "" {
+		if err := RDB.Do(ctx, "AUTH", cfg.Database.Redis.Password).Err(); err != nil {
+			logger.Fatal("Redis authentication failed", logger.Err(err))
+		}
+		logger.Info("Redis authentication successful")
 	}
+
+	if _, err := RDB.Ping(ctx).Result(); err != nil {
+		logger.Fatal("Failed to ping Redis", logger.Err(err))
+	}
+
+	logger.Info("Redis connected successfully",
+		logger.Int("pool_size", cfg.Database.Redis.PoolSize),
+		logger.Int("min_idle_conns", cfg.Database.Redis.MinIdleConns),
+	)
 }
 
 func GetRedis() *redis.Client {

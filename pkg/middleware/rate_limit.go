@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"gin-demo/config"
 	"gin-demo/model"
 	"net/http"
 	"sync"
@@ -17,14 +18,37 @@ type rateLimiter struct {
 	window   time.Duration // 时间窗口
 }
 
-var limiter = &rateLimiter{
-	requests: make(map[string][]time.Time),
-	limit:    100,                // 默认100次/分钟
-	window:   time.Minute,        // 1分钟窗口
+// RateLimitMiddleware 简单的限流中间件（从配置文件读取参数）
+func RateLimitMiddleware() gin.HandlerFunc {
+	// 从配置文件读取全局限流参数
+	limiter := &rateLimiter{
+		requests: make(map[string][]time.Time),
+		limit:    config.Cfg.Server.RateLimit.Global.Limit,
+		window:   config.Cfg.Server.RateLimit.Global.Window,
+	}
+	
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+		
+		if !limiter.allow(ip) {
+			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
+			c.Abort()
+			return
+		}
+		
+		c.Next()
+	}
 }
 
-// RateLimitMiddleware 简单的限流中间件
-func RateLimitMiddleware() gin.HandlerFunc {
+// AuthRateLimitMiddleware 认证接口限流中间件（从配置文件读取参数）
+func AuthRateLimitMiddleware() gin.HandlerFunc {
+	// 从配置文件读取认证接口限流参数
+	limiter := &rateLimiter{
+		requests: make(map[string][]time.Time),
+		limit:    config.Cfg.Server.RateLimit.Auth.Limit,
+		window:   config.Cfg.Server.RateLimit.Auth.Window,
+	}
+	
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
 		

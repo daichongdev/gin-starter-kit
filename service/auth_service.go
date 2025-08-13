@@ -53,7 +53,7 @@ func (s *AuthService) Register(req *model.RegisterRequest) (*model.LoginResponse
 		logger.Error("Failed to create user",
 			logger.Err(err),
 			logger.String("email", req.Email))
-		return nil, err
+		return nil, err // 直接返回数据库错误
 	}
 
 	// 生成JWT Token
