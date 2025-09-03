@@ -45,7 +45,7 @@ database:
     host: "localhost"
     port: 6379
     password: ""
-    db: 0
+    db: 12
     pool_size: 20
     min_idle_conns: 5
     max_retries: 3
@@ -111,3 +111,28 @@ log:
     max_backups: 30
     max_age: 7
     compress: true
+
+# 消息队列配置
+queue:
+  rmq:
+    tag: "gin-demo-queue"  # 队列标识
+    num_consumers: 10      # 默认消费者数量
+    prefetch_limit: 1000   # 预取限制
+    poll_duration: "100ms" # 轮询间隔
+    report_batch_size: 100 # 报告批次大小
+    retry_limit: 3         # 重试次数
+    retry_delay: "5s"      # 重试延迟
+  queues:
+    # 预定义队列配置
+    email:
+      name: "email_queue"
+      num_consumers: 5
+      prefetch_limit: 100
+    notification:
+      name: "notification_queue"
+      num_consumers: 3
+      prefetch_limit: 50
+    data_processing:
+      name: "data_processing_queue"
+      num_consumers: 8
+      prefetch_limit: 200

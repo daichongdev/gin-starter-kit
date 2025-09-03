@@ -6,19 +6,20 @@ import (
 	"github.com/spf13/viper"
 )
 
-// 主配置结构体
+// Config 主配置结构体
 type Config struct {
 	Server   *ServerConfig   `mapstructure:"server"`
 	Database *DatabaseConfig `mapstructure:"database"`
 	App      *AppConfig      `mapstructure:"app"`
 	JWT      *JWTConfig      `mapstructure:"jwt"`
 	Log      *LogConfig      `mapstructure:"log"`
+	Queue    *QueueConfig    `mapstructure:"queue"` // 添加这一行
 }
 
-// 全局配置变量
+// Cfg 全局配置变量
 var Cfg *Config
 
-// 初始化配置
+// InitConfig 初始化配置
 func InitConfig() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -47,9 +48,10 @@ func setAllDefaults() {
 	setAppDefaults()
 	setJWTDefaults()
 	setLogDefaults()
+	setQueueDefaults() // 添加这一行
 }
 
-// 获取配置
+// GetConfig 获取配置
 func GetConfig() *Config {
 	return Cfg
 }

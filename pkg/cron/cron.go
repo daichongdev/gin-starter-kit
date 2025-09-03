@@ -53,7 +53,6 @@ func addJobs() error {
 		return err
 	}
 
-	logger.Info("所有定时任务添加成功")
 	return nil
 }
 

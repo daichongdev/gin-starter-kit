@@ -48,6 +48,8 @@ func SetupRouter() *gin.Engine {
 	// API路由组
 	api := r.Group("/api")
 	{
+		SetupEmailRoutes(api)
+
 		// 认证路由（无需JWT认证，但有更严格的限流）
 		auth := api.Group("/auth")
 		auth.Use(middleware.CustomRateLimitMiddleware(20, time.Minute)) // 20次/分钟
