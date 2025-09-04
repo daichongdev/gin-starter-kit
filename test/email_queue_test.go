@@ -2,6 +2,7 @@ package test
 
 import (
 	"gin-demo/pkg/queue"
+	"gin-demo/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -31,4 +32,16 @@ func TestEmailHandler(t *testing.T) {
 	// 处理消息（这里会调用模拟的发送逻辑）
 	err = handler.Handle(message)
 	assert.NoError(t, err)
+}
+
+func TestEmailQueue(t *testing.T) {
+	// 设置测试环境并获取清理函数
+	cleanup := SetupTest(t)
+	defer cleanup() // 确保测试结束后清理资源
+
+	emailService := service.NewEmailService()
+	to := []string{"valid@example.com"}
+
+	err := emailService.SendEmail(to, "有效邮件", "这是有效的邮件内容", false)
+	require.NoError(t, err)
 }
