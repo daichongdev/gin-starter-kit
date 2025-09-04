@@ -60,6 +60,31 @@ func AccessLogMiddleware() gin.HandlerFunc {
 			path = path + "?" + raw
 		}
 
+		// 收集错误信息
+		var errorMessages []string
+		var errorDetails []interface{}
+
+		// 获取Gin框架中的错误
+		if len(c.Errors) > 0 {
+			for _, err := range c.Errors {
+				errorMessages = append(errorMessages, err.Error())
+				errorDetails = append(errorDetails, map[string]interface{}{
+					"error": err.Error(),
+					"type":  err.Type,
+					"meta":  err.Meta,
+				})
+			}
+		}
+
+		// 根据状态码添加相应的错误信息
+		if statusCode >= 400 {
+			statusText := getStatusText(statusCode)
+			if len(errorMessages) == 0 {
+				// 如果没有具体错误信息，使用状态码对应的描述
+				errorMessages = append(errorMessages, statusText)
+			}
+		}
+
 		// 构建日志字段
 		fields := []zap.Field{
 			zap.String("trace_id", traceID),
@@ -72,9 +97,26 @@ func AccessLogMiddleware() gin.HandlerFunc {
 			zap.String("user_agent", userAgent),
 		}
 
+		// 添加错误信息字段
+		if len(errorMessages) > 0 {
+			fields = append(fields,
+				zap.Strings("errors", errorMessages),
+				zap.Any("error_details", errorDetails),
+			)
+		} else {
+			fields = append(fields, zap.String("errors", ""))
+		}
+
 		// 添加请求体（如果有且不为空）
 		if requestBody != "" && len(requestBody) < 1000 { // 限制长度避免日志过大
 			fields = append(fields, zap.String("request_body", requestBody))
+		}
+
+		// 获取响应体（仅在出错时记录）
+		if statusCode >= 400 {
+			if responseBody := getResponseBody(c); responseBody != "" && len(responseBody) < 1000 {
+				fields = append(fields, zap.String("response_body", responseBody))
+			}
 		}
 
 		// 获取SQL执行日志
@@ -96,6 +138,9 @@ func AccessLogMiddleware() gin.HandlerFunc {
 		case statusCode >= 500:
 			// 5xx 服务器错误 - 记录为ERROR级别
 			logger.Error("Server Error", fields...)
+		case statusCode == 429:
+			// 429 限流错误 - 记录为WARN级别
+			logger.Warn("Rate Limited", fields...)
 		case statusCode == 401:
 			// 401 认证失败 - 记录为INFO级别（正常业务逻辑）
 			logger.Info("Authentication Required", fields...)
@@ -110,6 +155,46 @@ func AccessLogMiddleware() gin.HandlerFunc {
 			logger.Warn("Client Error", fields...)
 		}
 	}
+}
+
+// getStatusText 根据状态码获取描述文本
+func getStatusText(statusCode int) string {
+	switch statusCode {
+	case 400:
+		return "Bad Request"
+	case 401:
+		return "Unauthorized"
+	case 403:
+		return "Forbidden"
+	case 404:
+		return "Not Found"
+	case 405:
+		return "Method Not Allowed"
+	case 409:
+		return "Conflict"
+	case 422:
+		return "Unprocessable Entity"
+	case 429:
+		return "Too Many Requests"
+	case 500:
+		return "Internal Server Error"
+	case 502:
+		return "Bad Gateway"
+	case 503:
+		return "Service Unavailable"
+	case 504:
+		return "Gateway Timeout"
+	default:
+		return "Unknown Error"
+	}
+}
+
+// getResponseBody 获取响应体内容（仅在出错时使用）
+func getResponseBody(c *gin.Context) string {
+	// 注意：这个方法需要配合响应写入器来实现
+	// 由于Gin的ResponseWriter不直接提供获取响应体的方法
+	// 这里返回空字符串，如果需要记录响应体，需要使用自定义的ResponseWriter
+	return ""
 }
 
 // generateTraceID 生成链路追踪ID
