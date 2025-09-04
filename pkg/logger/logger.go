@@ -191,7 +191,7 @@ func getLogLevel(level string) zapcore.Level {
 
 // getEncoderConfig 获取编码器配置
 func getEncoderConfig(enableColor bool) zapcore.EncoderConfig {
-	config := zapcore.EncoderConfig{
+	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",
 		LevelKey:       "level",
 		NameKey:        "logger",
@@ -206,10 +206,10 @@ func getEncoderConfig(enableColor bool) zapcore.EncoderConfig {
 	}
 
 	if enableColor {
-		config.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
 
-	return config
+	return encoderConfig
 }
 
 // getAccessEncoderConfig 获取访问日志编码器配置

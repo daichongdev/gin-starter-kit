@@ -46,12 +46,11 @@ type AsyncLogger struct {
 
 var (
 	asyncLogger *AsyncLogger
-	logOnce     sync.Once
 )
 
 // initAsyncLogger 初始化异步日志处理器
 func initAsyncLogger() {
-	logOnce.Do(func() {
+	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		asyncLogger = &AsyncLogger{
 			logChan:    make(chan *LogEntry, 1000),            // 缓冲1000条日志
