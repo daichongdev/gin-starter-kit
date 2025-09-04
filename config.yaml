@@ -69,48 +69,70 @@ log:
   enable_color: true
   enable_caller: false
   enable_stacktrace: false
+
+  # 性能优化配置
+  performance:
+    async_enabled: true           # 启用异步日志
+    buffer_size: 1000            # 日志缓冲区大小
+    worker_count: 4              # 工作协程数量（建议设置为CPU核心数）
+    request_body_max_size: 10240 # 请求体记录最大大小(字节) 10KB
+    enable_sql_trace: true       # 启用SQL追踪
+    batch_write_enabled: true    # 启用批量写入
+    batch_size: 100              # 批量写入大小
+    flush_interval: "1s"         # 刷新间隔
+    queue_full_policy: "drop"    # 队列满时策略: drop(丢弃) 或 sync(同步处理)
+
   console:
     enabled: true
     level: "info"
     format: "text"
     enable_color: true
+
   file:
     enabled: true
     level: "info"
     format: "json"
     filename: "./logs/app.log"
-    max_size: 10
-    max_backups: 30
+    max_size: 50      # 增大到50MB以减少文件切换频率
+    max_backups: 20   # 减少备份文件数量
     max_age: 7
     compress: true
+
   error_file:
     enabled: true
     level: "error"
     format: "json"
     filename: "./logs/error.log"
-    max_size: 10
-    max_backups: 20
+    max_size: 20      # 错误日志适中大小
+    max_backups: 15
     max_age: 7
     compress: true
+
   database:
     enabled: true
     level: "info"
     slow_threshold: 200
-    log_all_sql: true
+    log_all_sql: false           # 生产环境建议关闭，只记录慢查询
     ignore_record_not_found: true
     filename: "./logs/database.log"
-    max_size: 10
-    max_backups: 30
+    max_size: 30      # 数据库日志可能较多
+    max_backups: 20
     max_age: 7
     compress: true
+
   access:
     enabled: true
     format: "json"
     filename: "./logs/access.log"
-    max_size: 10
-    max_backups: 30
+    max_size: 100     # 访问日志通常最多，增大文件大小
+    max_backups: 10   # 减少备份数量
     max_age: 7
     compress: true
+    # 访问日志特定优化
+    enable_request_body: true    # 是否记录请求体
+    enable_response_body: false  # 是否记录响应体（仅错误时）
+    enable_user_agent: true      # 是否记录User-Agent
+    enable_trace_id: true        # 是否记录链路追踪ID
 
 # 消息队列配置
 queue:

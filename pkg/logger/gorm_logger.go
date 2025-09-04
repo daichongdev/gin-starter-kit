@@ -54,7 +54,7 @@ func (l *GormLogger) LogMode(level logger.LogLevel) logger.Interface {
 func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info && l.ZapLogger != nil {
 		fields := []zap.Field{zap.String("message", msg)}
-		if traceID := GetCurrentTraceID(); traceID != "" {
+		if traceID := GetCurrentTraceID(ctx); traceID != "" {
 			fields = append(fields, zap.String("trace_id", traceID))
 		}
 		l.ZapLogger.Info("GORM Info", fields...)
@@ -65,7 +65,7 @@ func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) 
 func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn && l.ZapLogger != nil {
 		fields := []zap.Field{zap.String("message", msg)}
-		if traceID := GetCurrentTraceID(); traceID != "" {
+		if traceID := GetCurrentTraceID(ctx); traceID != "" {
 			fields = append(fields, zap.String("trace_id", traceID))
 		}
 		l.ZapLogger.Warn("GORM Warn", fields...)
@@ -76,7 +76,7 @@ func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) 
 func (l *GormLogger) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error && l.ZapLogger != nil {
 		fields := []zap.Field{zap.String("message", msg)}
-		if traceID := GetCurrentTraceID(); traceID != "" {
+		if traceID := GetCurrentTraceID(ctx); traceID != "" {
 			fields = append(fields, zap.String("trace_id", traceID))
 		}
 		l.ZapLogger.Error("GORM Error", fields...)
@@ -93,7 +93,7 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 	sql, rows := fc()
 
 	// 获取当前链路追踪ID
-	traceID := GetCurrentTraceID()
+	traceID := GetCurrentTraceID(ctx)
 
 	// 构建基础字段
 	fields := []zap.Field{
@@ -121,6 +121,6 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 
 	// 添加到链路追踪日志
 	if traceID != "" {
-		AddSQLLog(sql, elapsed.String(), rows, err)
+		AddSQLLog(ctx, sql, elapsed.String(), rows, err)
 	}
 }

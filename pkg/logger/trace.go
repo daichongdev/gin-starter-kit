@@ -1,15 +1,9 @@
 package logger
 
 import (
+	"context"
 	"sync"
 )
-
-// TraceContext 链路追踪上下文
-type TraceContext struct {
-	TraceID string
-	SQLLogs []SQLLog
-	mutex   sync.RWMutex
-}
 
 // SQLLog SQL执行日志
 type SQLLog struct {
@@ -19,40 +13,40 @@ type SQLLog struct {
 	Error    string `json:"error,omitempty"`
 }
 
-var (
-	// 当前goroutine的链路追踪上下文
-	currentTraceContext *TraceContext
-	traceContextMutex   sync.RWMutex
+// TraceContext 链路追踪上下文
+type TraceContext struct {
+	TraceID string
+	SQLLogs []SQLLog
+	mutex   sync.RWMutex
+}
+
+type contextKey string
+
+const (
+	traceContextKey contextKey = "trace_context"
+	traceIDKey      contextKey = "trace_id"
 )
 
-// SetTraceContext 设置当前goroutine的链路追踪上下文
-func SetTraceContext(traceID string) {
-	traceContextMutex.Lock()
-	defer traceContextMutex.Unlock()
-
-	currentTraceContext = &TraceContext{
+// SetTraceContext 设置链路追踪上下文到context
+func SetTraceContext(ctx context.Context, traceID string) context.Context {
+	traceCtx := &TraceContext{
 		TraceID: traceID,
 		SQLLogs: make([]SQLLog, 0),
 	}
+	return context.WithValue(ctx, traceContextKey, traceCtx)
 }
 
-// GetCurrentTraceID 获取当前goroutine的链路追踪ID
-func GetCurrentTraceID() string {
-	traceContextMutex.RLock()
-	defer traceContextMutex.RUnlock()
-
-	if currentTraceContext != nil {
-		return currentTraceContext.TraceID
+// GetCurrentTraceID 从context获取链路追踪ID
+func GetCurrentTraceID(ctx context.Context) string {
+	if traceID, ok := ctx.Value(traceIDKey).(string); ok {
+		return traceID
 	}
 	return ""
 }
 
-// AddSQLLog 添加SQL执行日志到当前链路追踪
-func AddSQLLog(sql, duration string, rows int64, err error) {
-	traceContextMutex.Lock()
-	defer traceContextMutex.Unlock()
-
-	if currentTraceContext != nil {
+// AddSQLLog 添加SQL执行日志到context
+func AddSQLLog(ctx context.Context, sql, duration string, rows int64, err error) {
+	if traceCtx, ok := ctx.Value(traceContextKey).(*TraceContext); ok {
 		sqlLog := SQLLog{
 			SQL:      sql,
 			Duration: duration,
@@ -62,33 +56,22 @@ func AddSQLLog(sql, duration string, rows int64, err error) {
 			sqlLog.Error = err.Error()
 		}
 
-		currentTraceContext.mutex.Lock()
-		currentTraceContext.SQLLogs = append(currentTraceContext.SQLLogs, sqlLog)
-		currentTraceContext.mutex.Unlock()
+		traceCtx.mutex.Lock()
+		traceCtx.SQLLogs = append(traceCtx.SQLLogs, sqlLog)
+		traceCtx.mutex.Unlock()
 	}
 }
 
-// GetSQLLogs 获取当前链路追踪的SQL日志
-func GetSQLLogs() []SQLLog {
-	traceContextMutex.RLock()
-	defer traceContextMutex.RUnlock()
-
-	if currentTraceContext != nil {
-		currentTraceContext.mutex.RLock()
-		defer currentTraceContext.mutex.RUnlock()
+// GetSQLLogs 从context获取SQL日志
+func GetSQLLogs(ctx context.Context) []SQLLog {
+	if traceCtx, ok := ctx.Value(traceContextKey).(*TraceContext); ok {
+		traceCtx.mutex.RLock()
+		defer traceCtx.mutex.RUnlock()
 
 		// 返回副本避免并发问题
-		logs := make([]SQLLog, len(currentTraceContext.SQLLogs))
-		copy(logs, currentTraceContext.SQLLogs)
+		logs := make([]SQLLog, len(traceCtx.SQLLogs))
+		copy(logs, traceCtx.SQLLogs)
 		return logs
 	}
 	return nil
-}
-
-// ClearTraceContext 清除当前goroutine的链路追踪上下文
-func ClearTraceContext() {
-	traceContextMutex.Lock()
-	defer traceContextMutex.Unlock()
-
-	currentTraceContext = nil
 }

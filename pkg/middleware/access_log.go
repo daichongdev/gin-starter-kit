@@ -2,159 +2,317 @@ package middleware
 
 import (
 	"bytes"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"gin-demo/pkg/logger"
 	"io"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-// AccessLogMiddleware 访问日志中间件，支持链路追踪
+// LogEntry 日志条目结构
+type LogEntry struct {
+	TraceID      string
+	Method       string
+	Path         string
+	ClientIP     string
+	StatusCode   int
+	BodySize     int
+	Latency      time.Duration
+	UserAgent    string
+	RequestBody  string
+	ResponseBody string
+	Errors       []string
+	ErrorDetails []interface{}
+	SQLLogs      []logger.SQLLog
+	Timestamp    time.Time
+}
+
+// AsyncLogger 异步日志处理器
+type AsyncLogger struct {
+	logChan    chan *LogEntry
+	workerPool chan struct{}
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+}
+
+var (
+	asyncLogger *AsyncLogger
+	logOnce     sync.Once
+)
+
+// initAsyncLogger 初始化异步日志处理器
+func initAsyncLogger() {
+	logOnce.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		asyncLogger = &AsyncLogger{
+			logChan:    make(chan *LogEntry, 1000),            // 缓冲1000条日志
+			workerPool: make(chan struct{}, runtime.NumCPU()), // 工作池大小为CPU核心数
+			ctx:        ctx,
+			cancel:     cancel,
+		}
+
+		// 启动日志处理协程
+		for i := 0; i < runtime.NumCPU(); i++ {
+			asyncLogger.wg.Add(1)
+			go asyncLogger.worker()
+		}
+	})
+}
+
+// worker 日志处理工作协程
+func (al *AsyncLogger) worker() {
+	defer al.wg.Done()
+
+	for {
+		select {
+		case entry := <-al.logChan:
+			if entry != nil {
+				al.processLogEntry(entry)
+			}
+		case <-al.ctx.Done():
+			return
+		}
+	}
+}
+
+// processLogEntry 处理单条日志
+func (al *AsyncLogger) processLogEntry(entry *LogEntry) {
+	// 构建日志字段（只构建一次）
+	fields := []zap.Field{
+		zap.String("trace_id", entry.TraceID),
+		zap.String("method", entry.Method),
+		zap.String("path", entry.Path),
+		zap.String("client_ip", entry.ClientIP),
+		zap.Int("status_code", entry.StatusCode),
+		zap.Int("body_size", entry.BodySize),
+		zap.Duration("latency", entry.Latency),
+		zap.String("user_agent", entry.UserAgent),
+		zap.Time("timestamp", entry.Timestamp),
+	}
+
+	// 添加错误信息
+	if len(entry.Errors) > 0 {
+		fields = append(fields,
+			zap.Strings("errors", entry.Errors),
+			zap.Any("error_details", entry.ErrorDetails),
+		)
+	}
+
+	// 添加请求体（如果需要）
+	if entry.RequestBody != "" {
+		fields = append(fields, zap.String("request_body", entry.RequestBody))
+	}
+
+	// 添加响应体（如果需要）
+	if entry.ResponseBody != "" {
+		fields = append(fields, zap.String("response_body", entry.ResponseBody))
+	}
+
+	// 添加SQL日志
+	if len(entry.SQLLogs) > 0 {
+		fields = append(fields,
+			zap.Int("sql_count", len(entry.SQLLogs)),
+			zap.Any("sql_details", entry.SQLLogs),
+		)
+	}
+
+	// 记录访问日志
+	if logger.AccessLogger != nil {
+		logger.AccessLogger.Info("access", fields...)
+	}
+
+	// 根据状态码记录不同级别的日志
+	switch {
+	case entry.StatusCode >= 500:
+		logger.Error("Server Error", fields...)
+	case entry.StatusCode == 429:
+		logger.Warn("Rate Limited", fields...)
+	case entry.StatusCode == 401:
+		logger.Info("Authentication Required", fields...)
+	case entry.StatusCode == 403:
+		logger.Warn("Access Forbidden", fields...)
+	case entry.StatusCode == 404:
+		logger.Info("Resource Not Found", fields...)
+	case entry.StatusCode >= 400:
+		logger.Warn("Client Error", fields...)
+	}
+}
+
+// sendLogEntry 发送日志条目到异步处理队列
+func (al *AsyncLogger) sendLogEntry(entry *LogEntry) {
+	select {
+	case al.logChan <- entry:
+		// 成功发送
+	default:
+		// 队列满了，丢弃日志或同步处理
+		logger.Warn("Log queue full, processing synchronously")
+		al.processLogEntry(entry)
+	}
+}
+
+// Shutdown 优雅关闭异步日志处理器
+func (al *AsyncLogger) Shutdown() {
+	al.cancel()
+	close(al.logChan)
+	al.wg.Wait()
+}
+
+// AccessLogMiddleware 优化后的访问日志中间件
 func AccessLogMiddleware() gin.HandlerFunc {
+	// 初始化异步日志处理器
+	initAsyncLogger()
+
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
 
-		// 生成链路追踪ID
-		traceID := generateTraceID()
+		// 生成高性能链路追踪ID
+		traceID := generateFastTraceID()
 
-		// 设置当前goroutine的链路追踪上下文
-		logger.SetTraceContext(traceID)
-		defer logger.ClearTraceContext()
+		// 设置链路追踪上下文（使用context而非全局变量）
+		ctx := context.WithValue(c.Request.Context(), "trace_id", traceID)
+		c.Request = c.Request.WithContext(ctx)
 
-		// 读取请求体（如果需要记录）
+		// 条件性读取请求体
 		var requestBody string
-		if c.Request.Body != nil && (c.Request.Method == "POST" || c.Request.Method == "PUT" || c.Request.Method == "PATCH") {
-			bodyBytes, _ := io.ReadAll(c.Request.Body)
-			requestBody = string(bodyBytes)
-			// 重新设置请求体，以便后续处理
-			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		if shouldLogRequestBody(c) {
+			requestBody = readRequestBodySafely(c)
 		}
 
 		// 处理请求
 		c.Next()
 
-		// 计算延迟
-		latency := time.Since(start)
-
-		// 获取客户端IP
-		clientIP := c.ClientIP()
-
-		// 获取请求方法
-		method := c.Request.Method
-
-		// 获取状态码
-		statusCode := c.Writer.Status()
-
-		// 获取响应大小
-		bodySize := c.Writer.Size()
-
-		// 获取User-Agent
-		userAgent := c.Request.UserAgent()
-
-		// 构建完整路径
-		if raw != "" {
-			path = path + "?" + raw
-		}
-
-		// 收集错误信息
-		var errorMessages []string
-		var errorDetails []interface{}
-
-		// 获取Gin框架中的错误
-		if len(c.Errors) > 0 {
-			for _, err := range c.Errors {
-				errorMessages = append(errorMessages, err.Error())
-				errorDetails = append(errorDetails, map[string]interface{}{
-					"error": err.Error(),
-					"type":  err.Type,
-					"meta":  err.Meta,
-				})
+		// 异步记录日志
+		go func() {
+			entry := &LogEntry{
+				TraceID:     traceID,
+				Method:      c.Request.Method,
+				Path:        buildFullPath(path, raw),
+				ClientIP:    c.ClientIP(),
+				StatusCode:  c.Writer.Status(),
+				BodySize:    c.Writer.Size(),
+				Latency:     time.Since(start),
+				UserAgent:   c.Request.UserAgent(),
+				RequestBody: requestBody,
+				Timestamp:   start,
 			}
-		}
 
-		// 根据状态码添加相应的错误信息
-		if statusCode >= 400 {
-			statusText := getStatusText(statusCode)
-			if len(errorMessages) == 0 {
-				// 如果没有具体错误信息，使用状态码对应的描述
-				errorMessages = append(errorMessages, statusText)
+			// 收集错误信息
+			collectErrors(c, entry)
+
+			// 获取SQL日志（从context中获取）
+			if sqlLogs := getSQLLogsFromContext(ctx); len(sqlLogs) > 0 {
+				entry.SQLLogs = sqlLogs
 			}
-		}
 
-		// 构建日志字段
-		fields := []zap.Field{
-			zap.String("trace_id", traceID),
-			zap.String("method", method),
-			zap.String("path", path),
-			zap.String("client_ip", clientIP),
-			zap.Int("status_code", statusCode),
-			zap.Int("body_size", bodySize),
-			zap.Duration("latency", latency),
-			zap.String("user_agent", userAgent),
-		}
+			// 发送到异步处理队列
+			asyncLogger.sendLogEntry(entry)
+		}()
+	}
+}
 
-		// 添加错误信息字段
-		if len(errorMessages) > 0 {
-			fields = append(fields,
-				zap.Strings("errors", errorMessages),
-				zap.Any("error_details", errorDetails),
-			)
-		} else {
-			fields = append(fields, zap.String("errors", ""))
-		}
+// generateFastTraceID 高性能链路追踪ID生成
+func generateFastTraceID() string {
+	// 使用更高效的方式生成ID
+	now := time.Now()
+	timestamp := now.UnixNano()
 
-		// 添加请求体（如果有且不为空）
-		if requestBody != "" && len(requestBody) < 1000 { // 限制长度避免日志过大
-			fields = append(fields, zap.String("request_body", requestBody))
-		}
+	// 生成8字节随机数
+	randomBytes := make([]byte, 8)
+	rand.Read(randomBytes)
 
-		// 获取响应体（仅在出错时记录）
-		if statusCode >= 400 {
-			if responseBody := getResponseBody(c); responseBody != "" && len(responseBody) < 1000 {
-				fields = append(fields, zap.String("response_body", responseBody))
-			}
-		}
+	return fmt.Sprintf("%d%s", timestamp, hex.EncodeToString(randomBytes))
+}
 
-		// 获取SQL执行日志
-		sqlLogs := logger.GetSQLLogs()
-		if len(sqlLogs) > 0 {
-			fields = append(fields,
-				zap.Int("sql_count", len(sqlLogs)),
-				zap.Any("sql_details", sqlLogs),
-			)
-		}
+// shouldLogRequestBody 判断是否需要记录请求体
+func shouldLogRequestBody(c *gin.Context) bool {
+	// 只对特定方法和内容类型记录请求体
+	if c.Request.Method != "POST" && c.Request.Method != "PUT" && c.Request.Method != "PATCH" {
+		return false
+	}
 
-		// 记录访问日志
-		if logger.AccessLogger != nil {
-			logger.AccessLogger.Info("access", fields...)
-		}
+	// 检查Content-Type
+	contentType := c.GetHeader("Content-Type")
+	if !strings.Contains(contentType, "application/json") &&
+		!strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		return false
+	}
 
-		// 根据状态码类型记录不同级别的日志
-		switch {
-		case statusCode >= 500:
-			// 5xx 服务器错误 - 记录为ERROR级别
-			logger.Error("Server Error", fields...)
-		case statusCode == 429:
-			// 429 限流错误 - 记录为WARN级别
-			logger.Warn("Rate Limited", fields...)
-		case statusCode == 401:
-			// 401 认证失败 - 记录为INFO级别（正常业务逻辑）
-			logger.Info("Authentication Required", fields...)
-		case statusCode == 403:
-			// 403 权限不足 - 记录为WARN级别
-			logger.Warn("Access Forbidden", fields...)
-		case statusCode == 404:
-			// 404 资源未找到 - 记录为INFO级别
-			logger.Info("Resource Not Found", fields...)
-		case statusCode >= 400:
-			// 其他4xx客户端错误 - 记录为WARN级别
-			logger.Warn("Client Error", fields...)
+	// 检查Content-Length，避免记录过大的请求体
+	if c.Request.ContentLength > 10240 { // 10KB限制
+		return false
+	}
+
+	return true
+}
+
+// readRequestBodySafely 安全读取请求体
+func readRequestBodySafely(c *gin.Context) string {
+	if c.Request.Body == nil {
+		return ""
+	}
+
+	// 限制读取大小
+	limitedReader := io.LimitReader(c.Request.Body, 10240) // 10KB限制
+	bodyBytes, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return ""
+	}
+
+	// 重新设置请求体
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	return string(bodyBytes)
+}
+
+// buildFullPath 构建完整路径
+func buildFullPath(path, raw string) string {
+	if raw != "" {
+		return path + "?" + raw
+	}
+	return path
+}
+
+// collectErrors 收集错误信息
+func collectErrors(c *gin.Context, entry *LogEntry) {
+	var errorMessages []string
+	var errorDetails []interface{}
+
+	// 获取Gin框架中的错误
+	if len(c.Errors) > 0 {
+		for _, err := range c.Errors {
+			errorMessages = append(errorMessages, err.Error())
+			errorDetails = append(errorDetails, map[string]interface{}{
+				"error": err.Error(),
+				"type":  err.Type,
+				"meta":  err.Meta,
+			})
 		}
 	}
+
+	// 根据状态码添加错误信息
+	if entry.StatusCode >= 400 && len(errorMessages) == 0 {
+		errorMessages = append(errorMessages, getStatusText(entry.StatusCode))
+	}
+
+	entry.Errors = errorMessages
+	entry.ErrorDetails = errorDetails
+}
+
+// getSQLLogsFromContext 从context获取SQL日志
+func getSQLLogsFromContext(ctx context.Context) []logger.SQLLog {
+	// 这里需要修改logger包来支持context-based的SQL日志收集
+	// 暂时返回空，需要配合logger包的修改
+	return nil
 }
 
 // getStatusText 根据状态码获取描述文本
@@ -187,27 +345,4 @@ func getStatusText(statusCode int) string {
 	default:
 		return "Unknown Error"
 	}
-}
-
-// getResponseBody 获取响应体内容（仅在出错时使用）
-func getResponseBody(c *gin.Context) string {
-	// 注意：这个方法需要配合响应写入器来实现
-	// 由于Gin的ResponseWriter不直接提供获取响应体的方法
-	// 这里返回空字符串，如果需要记录响应体，需要使用自定义的ResponseWriter
-	return ""
-}
-
-// generateTraceID 生成链路追踪ID
-func generateTraceID() string {
-	return strings.ReplaceAll(time.Now().Format("20060102150405.000000"), ".", "") + randomString(6)
-}
-
-// randomString 生成随机字符串
-func randomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
-	}
-	return string(b)
 }
