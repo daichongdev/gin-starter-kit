@@ -15,7 +15,7 @@ ENV GOSUMDB=sum.golang.google.cn
 COPY go.mod go.sum ./
 
 # 下载依赖
-RUN go mod download && go mod verify
+RUN go mod download
 
 # 复制源代码
 COPY . .
@@ -23,7 +23,7 @@ COPY . .
 # 构建应用程序
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -trimpath \
-    -ldflags="-s -w -X main.version=${VERSION:-dev} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    -ldflags="-s -w" \
     -o main .
 
 # 第二阶段：运行阶段
