@@ -33,7 +33,10 @@ func SetTraceContext(ctx context.Context, traceID string) context.Context {
 		TraceID: traceID,
 		SQLLogs: make([]SQLLog, 0),
 	}
-	return context.WithValue(ctx, traceContextKey, traceCtx)
+	// 同时写入 trace_context 和 trace_id，确保跨包读取一致
+	ctx = context.WithValue(ctx, traceContextKey, traceCtx)
+	ctx = context.WithValue(ctx, traceIDKey, traceID)
+	return ctx
 }
 
 // GetCurrentTraceID 从context获取链路追踪ID

@@ -8,6 +8,7 @@ import (
 	"gin-demo/model"
 	"gin-demo/pkg/cron"
 	"gin-demo/pkg/logger"
+	"gin-demo/pkg/middleware"
 	"gin-demo/pkg/queue"
 	"gin-demo/router"
 	"net/http"
@@ -117,6 +118,9 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Fatal("Server forced to shutdown", zap.Error(err))
 	}
+
+	// 关闭访问日志异步处理器（确保日志 flush 完成）
+	middleware.ShutdownAccessLogger()
 
 	// 关闭数据库连接
 	if err := database.CloseDB(); err != nil {

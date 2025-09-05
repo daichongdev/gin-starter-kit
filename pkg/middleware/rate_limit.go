@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
@@ -142,10 +144,16 @@ func (rl *RedisRateLimiter) Allow(ctx context.Context, key string) bool {
 	// 2. 统计当前窗口内的请求数
 	countCmd := pipe.ZCard(ctx, redisKey)
 
-	// 3. 添加当前请求
+	// 3. 添加当前请求（确保member唯一，避免同毫秒并发覆盖）
+	randomBytes := make([]byte, 8)
+	if _, rerr := rand.Read(randomBytes); rerr != nil {
+		// 退化为纳秒时间戳字符串，极端情况下也能较好避免碰撞
+		randomBytes = []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
+	}
+	member := fmt.Sprintf("%d-%s", now, hex.EncodeToString(randomBytes))
 	pipe.ZAdd(ctx, redisKey, redis.Z{
 		Score:  float64(now),
-		Member: now, // 使用时间戳作为member确保唯一性
+		Member: member,
 	})
 
 	// 4. 设置过期时间

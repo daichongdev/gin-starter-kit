@@ -74,7 +74,10 @@ func (al *AsyncLogger) worker() {
 
 	for {
 		select {
-		case entry := <-al.logChan:
+		case entry, ok := <-al.logChan:
+			if !ok {
+				return
+			}
 			if entry != nil {
 				al.processLogEntry(entry)
 			}
@@ -166,6 +169,13 @@ func (al *AsyncLogger) Shutdown() {
 	al.wg.Wait()
 }
 
+// ShutdownAccessLogger 优雅关闭访问日志异步处理器
+func ShutdownAccessLogger() {
+	if asyncLogger != nil {
+		asyncLogger.Shutdown()
+	}
+}
+
 // AccessLogMiddleware 优化后的访问日志中间件
 func AccessLogMiddleware() gin.HandlerFunc {
 	// 初始化异步日志处理器
@@ -179,8 +189,8 @@ func AccessLogMiddleware() gin.HandlerFunc {
 		// 生成高性能链路追踪ID
 		traceID := generateFastTraceID()
 
-		// 设置链路追踪上下文（使用context而非全局变量）
-		ctx := context.WithValue(c.Request.Context(), "trace_id", traceID)
+		// 设置链路追踪上下文（使用logger包的SetTraceContext）
+		ctx := logger.SetTraceContext(c.Request.Context(), traceID)
 		c.Request = c.Request.WithContext(ctx)
 
 		// 条件性读取请求体
@@ -310,9 +320,8 @@ func collectErrors(c *gin.Context, entry *LogEntry) {
 
 // getSQLLogsFromContext 从context获取SQL日志
 func getSQLLogsFromContext(ctx context.Context) []logger.SQLLog {
-	// 这里需要修改logger包来支持context-based的SQL日志收集
-	// 暂时返回空，需要配合logger包的修改
-	return nil
+	// 直接复用logger包提供的获取方法
+	return logger.GetSQLLogs(ctx)
 }
 
 // getStatusText 根据状态码获取描述文本

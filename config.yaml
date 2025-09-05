@@ -17,8 +17,8 @@ server:
   # 限流配置
   rate_limit:
     global:
-      limit: 10
-      window: "1m"  # 1分钟
+      limit: 2
+      window: "3s"  # 1分钟
     auth:
       limit: 20
       window: "1m"  # 认证接口更严格的限流

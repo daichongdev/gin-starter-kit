@@ -96,10 +96,14 @@ func (m *Manager) RegisterHandler(handler MessageHandler) error {
 		return fmt.Errorf("queue config for %s not found", queueName)
 	}
 
-	// 打开队列
-	queue, err := m.connection.OpenQueue(queueName)
+	// 打开队列：优先使用配置的实际队列名（如 email_queue），为空则回退逻辑名（如 email）
+	openName := queueConfig.Name
+	if openName == "" {
+		openName = queueName
+	}
+	queue, err := m.connection.OpenQueue(openName)
 	if err != nil {
-		return fmt.Errorf("failed to open queue %s: %w", queueName, err)
+		return fmt.Errorf("failed to open queue %s: %w", openName, err)
 	}
 
 	// 启动消费者（这里设置prefetch limit和poll duration）
