@@ -25,7 +25,7 @@ RUN go mod download
 COPY . .
 
 # 构建应用程序
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o main .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o gin-demo .
 
 # 第二阶段：运行阶段
 FROM alpine:latest
@@ -44,8 +44,8 @@ RUN addgroup -g 1001 -S appgroup && \
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
-COPY --from=builder /app/main .
+# 从构建阶段复制二进制文件（改为 gin-demo）
+COPY --from=builder /app/gin-demo .
 
 # 复制配置文件
 COPY --from=builder /app/config.yaml .
@@ -63,5 +63,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# 启动应用
-CMD ["./main"]
+# 启动应用（改为 gin-demo）
+CMD ["./gin-demo"]
