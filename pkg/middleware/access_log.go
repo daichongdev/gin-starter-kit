@@ -46,6 +46,7 @@ type AsyncLogger struct {
 
 var (
 	asyncLogger *AsyncLogger
+	once        sync.Once
 )
 
 // initAsyncLogger 初始化异步日志处理器

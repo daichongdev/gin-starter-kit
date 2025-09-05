@@ -8,6 +8,7 @@ import (
 	"gin-demo/model"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,11 +33,12 @@ func NewRedisRateLimiter(limit int, window time.Duration) *RedisRateLimiter {
 var (
 	defaultLimiter *RedisRateLimiter
 	authLimiter    *RedisRateLimiter
+	limitOnce      sync.Once
 )
 
 // getDefaultLimiter 获取默认限流器（从配置文件读取参数）
 func getDefaultLimiter() *RedisRateLimiter {
-	once.Do(func() {
+	limitOnce.Do(func() {
 		defaultLimiter = NewRedisRateLimiter(
 			config.Cfg.Server.RateLimit.Global.Limit,
 			config.Cfg.Server.RateLimit.Global.Window,
@@ -51,7 +53,7 @@ func getDefaultLimiter() *RedisRateLimiter {
 
 // getAuthLimiter 获取认证限流器
 func getAuthLimiter() *RedisRateLimiter {
-	once.Do(func() {
+	limitOnce.Do(func() {
 		defaultLimiter = NewRedisRateLimiter(
 			config.Cfg.Server.RateLimit.Global.Limit,
 			config.Cfg.Server.RateLimit.Global.Window,
