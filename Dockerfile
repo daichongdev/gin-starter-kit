@@ -16,10 +16,10 @@ RUN go mod download
 # 复制源代码
 COPY . .
 
-# 构建应用程序
+# 构建应用程序（修正 ldflags 格式）
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
-    -a -installsuffix cgo \
+    -trimpath \
+    -ldflags="-s -w" \
     -o main .
 
 # 第二阶段：运行阶段
