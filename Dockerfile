@@ -44,6 +44,8 @@ RUN addgroup -g 1001 -S appgroup && \
 # 设置工作目录
 WORKDIR /app
 
+COPY --from=builder /app/main .
+
 # 创建日志目录
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
 
