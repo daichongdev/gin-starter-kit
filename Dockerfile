@@ -24,7 +24,7 @@ RUN go mod download
 # 复制源代码
 COPY . .
 
-# 构建应用程序
+# 构建应用程序：明确输出为 /app/main，避免命名/路径不一致
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /app/main .
 
 # 第二阶段：运行阶段
@@ -44,8 +44,10 @@ RUN addgroup -g 1001 -S appgroup && \
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
+# 从构建阶段复制可执行文件到运行镜像
 COPY --from=builder /app/main .
+# 可选：再次确保可执行权限
+RUN chmod +x /app/main
 
 # 创建日志目录
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
@@ -60,5 +62,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# 启动应用（改为 gin-demo）
+# 配置由平台挂载，不复制仓库内配置；仅预留目录（如需）
+RUN mkdir -p /app/config
+
+# 启动应用：与上面统一为 ./main
 CMD ["./main"]
