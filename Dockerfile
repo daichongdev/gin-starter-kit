@@ -44,12 +44,6 @@ RUN addgroup -g 1001 -S appgroup && \
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
-COPY --from=builder /app/main .
-
-# 复制配置文件
-# 改动：不再复制内置配置文件，配置由平台配置项注入（环境变量/文件挂载）
-
 # 创建日志目录
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
 
