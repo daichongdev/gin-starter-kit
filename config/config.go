@@ -26,16 +26,16 @@ func InitConfig() {
 	// 设置所有模块的默认值
 	setAllDefaults()
 
-	// 如果存在环境变量 test-config，则优先从该变量解析 YAML 配置
-	if content := os.Getenv("test-config"); content != "" {
+	// 如果存在环境变量 go_app_config，则优先从该变量解析 YAML 配置
+	if content := os.Getenv("go_app_config"); content != "" {
 		viper.SetConfigType("yaml")
 		if err := viper.ReadConfig(strings.NewReader(content)); err != nil {
-			log.Printf("Error reading config from env 'test-config': %v", err)
+			log.Printf("Error reading config from env 'go_app_config': %v", err)
 		} else {
-			log.Printf("Config loaded from env 'test-config'")
+			log.Printf("Config loaded from env 'go_app_config'")
 		}
 	} else {
-		// 未设置 test-config 时，保持原有文件查找逻辑（本地开发）
+		// 未设置 go_app_config 时，保持原有文件查找逻辑（本地开发）
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 		// 兼容容器路径与本地路径
