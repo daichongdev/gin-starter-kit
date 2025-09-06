@@ -44,11 +44,11 @@ RUN addgroup -g 1001 -S appgroup && \
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件（改为 gin-demo）
-COPY --from=builder /app/gin-demo .
+# 从构建阶段复制二进制文件
+COPY --from=builder /app/main .
 
 # 复制配置文件
-COPY --from=builder /app/config.yaml .
+# 改动：不再复制内置配置文件，配置由平台配置项注入（环境变量/文件挂载）
 
 # 创建日志目录
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
@@ -64,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # 启动应用（改为 gin-demo）
-CMD ["./gin-demo"]
+CMD ["./main"]
