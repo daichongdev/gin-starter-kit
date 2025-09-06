@@ -2,6 +2,8 @@ package config
 
 import (
 	"log"
+	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -21,16 +23,32 @@ var Cfg *Config
 
 // InitConfig 初始化配置
 func InitConfig() {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath(".")
-
 	// 设置所有模块的默认值
 	setAllDefaults()
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Error reading config file: %v", err)
+	// 如果存在环境变量 test_config，则优先从该变量解析 YAML 配置
+	if content := os.Getenv("test_config"); content != "" {
+		viper.SetConfigType("yaml")
+		if err := viper.ReadConfig(strings.NewReader(content)); err != nil {
+			log.Printf("Error reading config from env 'test_config': %v", err)
+		} else {
+			log.Printf("Config loaded from env 'test_config'")
+		}
+	} else {
+		// 未设置 test_config 时，保持原有文件查找逻辑（本地开发）
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		// 兼容容器路径与本地路径
+		viper.AddConfigPath("/app/config")
+		viper.AddConfigPath("/app")
+		viper.AddConfigPath("./config")
+		viper.AddConfigPath(".")
+
+		if err := viper.ReadInConfig(); err != nil {
+			log.Printf("Error reading config file: %v", err)
+		} else {
+			log.Printf("Using config file: %s", viper.ConfigFileUsed())
+		}
 	}
 
 	Cfg = &Config{}
