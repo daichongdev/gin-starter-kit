@@ -55,7 +55,7 @@ func setDatabaseDefaults() {
 	viper.SetDefault("database.mysql.port", 3306)
 	viper.SetDefault("database.mysql.username", "root")
 	viper.SetDefault("database.mysql.password", "")
-	viper.SetDefault("database.mysql.database", "daka_dev")
+	viper.SetDefault("database.mysql.database", "user")
 	viper.SetDefault("database.mysql.charset", "utf8mb4")
 	viper.SetDefault("database.mysql.parse_time", true)
 	viper.SetDefault("database.mysql.loc", "Local")
