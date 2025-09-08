@@ -38,9 +38,6 @@ func InitConfig() {
 		// 未设置 go_app_config 时，保持原有文件查找逻辑（本地开发）
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
-		// 兼容容器路径与本地路径
-		viper.AddConfigPath("/app/config")
-		viper.AddConfigPath("/app")
 		viper.AddConfigPath("./config")
 		viper.AddConfigPath(".")
 
