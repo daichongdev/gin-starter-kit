@@ -23,8 +23,6 @@ var Cfg *Config
 
 // InitConfig 初始化配置
 func InitConfig() {
-	// 设置所有模块的默认值
-	setAllDefaults()
 
 	// 如果存在环境变量 go_app_config，则优先从该变量解析 YAML 配置
 	if content := os.Getenv("go_app_config"); content != "" {
@@ -60,16 +58,6 @@ func InitConfig() {
 	}
 
 	log.Printf("Config loaded: %s v%s", Cfg.App.Name, Cfg.App.Version)
-}
-
-// 设置所有模块的默认值
-func setAllDefaults() {
-	setServerDefaults()
-	setDatabaseDefaults()
-	setAppDefaults()
-	setJWTDefaults()
-	setLogDefaults()
-	setQueueDefaults() // 添加这一行
 }
 
 // GetConfig 获取配置

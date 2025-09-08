@@ -2,8 +2,6 @@ package config
 
 import (
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 // RateLimitConfig 限流配置
@@ -25,20 +23,4 @@ type ServerConfig struct {
 		Global RateLimitConfig `mapstructure:"global"`
 		Auth   RateLimitConfig `mapstructure:"auth"`
 	} `mapstructure:"rate_limit"`
-}
-
-// 设置服务器默认值
-func setServerDefaults() {
-	viper.SetDefault("server.port", 8080)
-	viper.SetDefault("server.mode", "debug")
-	viper.SetDefault("server.read_timeout", "30s")
-	viper.SetDefault("server.write_timeout", "30s")
-	viper.SetDefault("server.shutdown_timeout", "10s")
-	viper.SetDefault("server.max_header_bytes", 1048576)  // 1MB
-	viper.SetDefault("server.max_request_size", 10485760) // 10MB
-	// 限流默认值
-	viper.SetDefault("server.rate_limit.global.limit", 100)
-	viper.SetDefault("server.rate_limit.global.window", "1m")
-	viper.SetDefault("server.rate_limit.auth.limit", 20)
-	viper.SetDefault("server.rate_limit.auth.window", "1m")
 }

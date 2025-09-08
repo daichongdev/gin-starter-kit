@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"time"
 )
 
@@ -27,29 +26,4 @@ type QueueItemConfig struct {
 	Name          string `mapstructure:"name" yaml:"name"`
 	NumConsumers  int    `mapstructure:"num_consumers" yaml:"num_consumers"`
 	PrefetchLimit int    `mapstructure:"prefetch_limit" yaml:"prefetch_limit"`
-}
-
-// setQueueDefaults 设置队列默认值
-func setQueueDefaults() {
-	// RMQ 默认配置
-	viper.SetDefault("queue.rmq.tag", "gin-demo-queue")
-	viper.SetDefault("queue.rmq.num_consumers", 10)
-	viper.SetDefault("queue.rmq.prefetch_limit", 1000)
-	viper.SetDefault("queue.rmq.poll_duration", "100ms")
-	viper.SetDefault("queue.rmq.report_batch_size", 100)
-	viper.SetDefault("queue.rmq.retry_limit", 3)
-	viper.SetDefault("queue.rmq.retry_delay", "5s")
-
-	// 预定义队列默认配置
-	viper.SetDefault("queue.queues.email.name", "email_queue")
-	viper.SetDefault("queue.queues.email.num_consumers", 5)
-	viper.SetDefault("queue.queues.email.prefetch_limit", 100)
-
-	viper.SetDefault("queue.queues.notification.name", "notification_queue")
-	viper.SetDefault("queue.queues.notification.num_consumers", 3)
-	viper.SetDefault("queue.queues.notification.prefetch_limit", 50)
-
-	viper.SetDefault("queue.queues.data_processing.name", "data_processing_queue")
-	viper.SetDefault("queue.queues.data_processing.num_consumers", 8)
-	viper.SetDefault("queue.queues.data_processing.prefetch_limit", 200)
 }

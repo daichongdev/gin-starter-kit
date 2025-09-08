@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 // DatabaseConfig 数据库配置
@@ -46,40 +44,6 @@ type RedisConfig struct {
 	DialTimeout     time.Duration `mapstructure:"dial_timeout"`
 	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
-}
-
-// 设置数据库默认值
-func setDatabaseDefaults() {
-	// MySQL 默认值 - 不再从环境变量读取
-	viper.SetDefault("database.mysql.host", "127.0.0.1")
-	viper.SetDefault("database.mysql.port", 3306)
-	viper.SetDefault("database.mysql.username", "root")
-	viper.SetDefault("database.mysql.password", "")
-	viper.SetDefault("database.mysql.database", "user")
-	viper.SetDefault("database.mysql.charset", "utf8mb4")
-	viper.SetDefault("database.mysql.parse_time", true)
-	viper.SetDefault("database.mysql.loc", "Local")
-	viper.SetDefault("database.mysql.max_idle_conns", 20)
-	viper.SetDefault("database.mysql.max_open_conns", 100)
-	viper.SetDefault("database.mysql.conn_max_lifetime", "3600s")
-	viper.SetDefault("database.mysql.conn_max_idle_time", "1800s")
-	viper.SetDefault("database.mysql.dial_timeout", "10s")
-	viper.SetDefault("database.mysql.read_timeout", "30s")
-	viper.SetDefault("database.mysql.write_timeout", "30s")
-
-	// Redis 默认值
-	viper.SetDefault("database.redis.host", "localhost")
-	viper.SetDefault("database.redis.port", 6379)
-	viper.SetDefault("database.redis.password", "")
-	viper.SetDefault("database.redis.db", 0)
-	viper.SetDefault("database.redis.pool_size", 20)
-	viper.SetDefault("database.redis.min_idle_conns", 5)
-	viper.SetDefault("database.redis.max_retries", 3)
-	viper.SetDefault("database.redis.pool_timeout", "30s")
-	viper.SetDefault("database.redis.conn_max_idle_time", "1800s")
-	viper.SetDefault("database.redis.dial_timeout", "10s")
-	viper.SetDefault("database.redis.read_timeout", "10s")
-	viper.SetDefault("database.redis.write_timeout", "10s")
 }
 
 // GetDSN 获取MySQL DSN
