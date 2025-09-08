@@ -35,16 +35,22 @@ func InitConfig() {
 			log.Printf("Config loaded from env 'go_app_config'")
 		}
 	} else {
-		// 未设置 go_app_config 时，保持原有文件查找逻辑（本地开发）
 		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
 		viper.AddConfigPath("./config")
 		viper.AddConfigPath(".")
 
+		viper.SetConfigType("yaml")
 		if err := viper.ReadInConfig(); err != nil {
-			log.Printf("Error reading config file: %v", err)
+			log.Printf("YAML config file not found, trying JSON format...")
+			// yaml找不到，尝试json格式
+			viper.SetConfigType("json")
+			if err := viper.ReadInConfig(); err != nil {
+				log.Fatalf("Config file not found in both YAML and JSON formats: %v", err)
+			} else {
+				log.Printf("Using JSON config file: %s", viper.ConfigFileUsed())
+			}
 		} else {
-			log.Printf("Using config file: %s", viper.ConfigFileUsed())
+			log.Printf("Using YAML config file: %s", viper.ConfigFileUsed())
 		}
 	}
 
