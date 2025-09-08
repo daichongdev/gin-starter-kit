@@ -8,6 +8,8 @@ import (
 	"gin-demo/model"
 	"gin-demo/pkg/cron"
 	"gin-demo/pkg/logger"
+	"gin-demo/pkg/middleware"
+	"gin-demo/pkg/queue"
 	"gin-demo/router"
 	"net/http"
 	"os"
@@ -53,6 +55,16 @@ func main() {
 		logger.Fatal("自动迁移失败", zap.Error(err))
 	}
 
+	// 初始化队列管理器
+	if err := queue.InitManager(cfg.Queue); err != nil {
+		logger.Fatal("Failed to initialize queue manager", zap.Error(err))
+	}
+
+	// 注册队列处理器
+	if err := queue.RegisterQueueHandlers(queue.GetManager(), cfg.Queue); err != nil {
+		logger.Fatal("Failed to register queue handlers", zap.Error(err))
+	}
+
 	// 初始化定时任务
 	cron.Init()
 
@@ -76,7 +88,7 @@ func main() {
 			zap.Duration("read_timeout", cfg.Server.ReadTimeout),
 			zap.Duration("write_timeout", cfg.Server.WriteTimeout),
 		)
-		
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Failed to start server", zap.Error(err))
 		}
@@ -86,11 +98,18 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	
+
 	logger.Info("Shutting down server...")
 
 	// 停止定时任务
 	cron.Stop()
+
+	// 关闭队列管理器
+	if queueManager := queue.GetManager(); queueManager != nil {
+		if queueErr := queueManager.Close(); queueErr != nil {
+			logger.Error("Error closing queue manager", zap.Error(queueErr))
+		}
+	}
 
 	// 优雅关闭服务器
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
@@ -99,6 +118,9 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Fatal("Server forced to shutdown", zap.Error(err))
 	}
+
+	// 关闭访问日志异步处理器（确保日志 flush 完成）
+	middleware.ShutdownAccessLogger()
 
 	// 关闭数据库连接
 	if err := database.CloseDB(); err != nil {

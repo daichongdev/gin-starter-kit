@@ -39,7 +39,10 @@ type RegisterRequest struct {
 // 添加自定义验证器
 func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("password", validatePassword)
+		err := v.RegisterValidation("password", validatePassword)
+		if err != nil {
+			return
+		}
 	}
 }
 

@@ -34,7 +34,7 @@ func setServerDefaults() {
 	viper.SetDefault("server.read_timeout", "30s")
 	viper.SetDefault("server.write_timeout", "30s")
 	viper.SetDefault("server.shutdown_timeout", "10s")
-	viper.SetDefault("server.max_header_bytes", 1048576) // 1MB
+	viper.SetDefault("server.max_header_bytes", 1048576)  // 1MB
 	viper.SetDefault("server.max_request_size", 10485760) // 10MB
 	// 限流默认值
 	viper.SetDefault("server.rate_limit.global.limit", 100)

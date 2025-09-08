@@ -1,7 +1,6 @@
 package router
 
 import (
-	"gin-demo/config"
 	"gin-demo/pkg/middleware"
 	"time"
 
@@ -22,10 +21,7 @@ func SetupRouter() *gin.Engine {
 	// 添加全局错误处理中间件
 	r.Use(middleware.ErrorHandlerMiddleware())
 
-	// 添加请求体大小限制中间件（从配置文件读取）
-	r.Use(middleware.RequestSizeLimitMiddleware(config.Cfg.Server.MaxRequestSize))
-
-	// 添加限流中间件（从配置文件读取参数）
+	// 添加限流中间件
 	r.Use(middleware.RateLimitMiddleware())
 
 	// GZIP压缩中间件
@@ -52,9 +48,11 @@ func SetupRouter() *gin.Engine {
 	// API路由组
 	api := r.Group("/api")
 	{
+		SetupEmailRoutes(api)
+
 		// 认证路由（无需JWT认证，但有更严格的限流）
 		auth := api.Group("/auth")
-		auth.Use(middleware.AuthRateLimitMiddleware()) // 使用配置文件中的认证限流参数
+		auth.Use(middleware.CustomRateLimitMiddleware(20, time.Minute)) // 20次/分钟
 		SetupAuthRoutes(auth)
 
 		// 用户路由（需要JWT认证）

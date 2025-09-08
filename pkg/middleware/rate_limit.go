@@ -1,115 +1,223 @@
 package middleware
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"gin-demo/config"
+	"gin-demo/database"
 	"gin-demo/model"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
-// 简单的内存限流器
-type rateLimiter struct {
-	requests map[string][]time.Time
-	mutex    sync.RWMutex
-	limit    int           // 限制次数
-	window   time.Duration // 时间窗口
+// RedisRateLimiter Redis限流器
+type RedisRateLimiter struct {
+	limit  int           // 限制次数
+	window time.Duration // 时间窗口
+}
+
+// NewRedisRateLimiter 创建Redis限流器
+func NewRedisRateLimiter(limit int, window time.Duration) *RedisRateLimiter {
+	return &RedisRateLimiter{
+		limit:  limit,
+		window: window,
+	}
+}
+
+// 默认限流器
+var (
+	defaultLimiter *RedisRateLimiter
+	authLimiter    *RedisRateLimiter
+	limitOnce      sync.Once
+)
+
+// getDefaultLimiter 获取默认限流器（从配置文件读取参数）
+func getDefaultLimiter() *RedisRateLimiter {
+	limitOnce.Do(func() {
+		defaultLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Global.Limit,
+			config.Cfg.Server.RateLimit.Global.Window,
+		)
+		authLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Auth.Limit,
+			config.Cfg.Server.RateLimit.Auth.Window,
+		)
+	})
+	return defaultLimiter
+}
+
+// getAuthLimiter 获取认证限流器
+func getAuthLimiter() *RedisRateLimiter {
+	limitOnce.Do(func() {
+		defaultLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Global.Limit,
+			config.Cfg.Server.RateLimit.Global.Window,
+		)
+		authLimiter = NewRedisRateLimiter(
+			config.Cfg.Server.RateLimit.Auth.Limit,
+			config.Cfg.Server.RateLimit.Auth.Window,
+		)
+	})
+	return authLimiter
 }
 
 // RateLimitMiddleware 简单的限流中间件（从配置文件读取参数）
 func RateLimitMiddleware() gin.HandlerFunc {
-	// 从配置文件读取全局限流参数
-	limiter := &rateLimiter{
-		requests: make(map[string][]time.Time),
-		limit:    config.Cfg.Server.RateLimit.Global.Limit,
-		window:   config.Cfg.Server.RateLimit.Global.Window,
-	}
-	
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
-		
-		if !limiter.allow(ip) {
+		limiter := getDefaultLimiter()
+
+		if !limiter.Allow(c.Request.Context(), ip) {
 			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }
 
 // AuthRateLimitMiddleware 认证接口限流中间件（从配置文件读取参数）
 func AuthRateLimitMiddleware() gin.HandlerFunc {
-	// 从配置文件读取认证接口限流参数
-	limiter := &rateLimiter{
-		requests: make(map[string][]time.Time),
-		limit:    config.Cfg.Server.RateLimit.Auth.Limit,
-		window:   config.Cfg.Server.RateLimit.Auth.Window,
-	}
-	
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
-		
-		if !limiter.allow(ip) {
+		limiter := getAuthLimiter()
+
+		if !limiter.Allow(c.Request.Context(), ip) {
 			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }
 
 // CustomRateLimitMiddleware 自定义限流参数的中间件
 func CustomRateLimitMiddleware(limit int, window time.Duration) gin.HandlerFunc {
-	customLimiter := &rateLimiter{
-		requests: make(map[string][]time.Time),
-		limit:    limit,
-		window:   window,
-	}
-	
+	limiter := NewRedisRateLimiter(limit, window)
+
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
-		
-		if !customLimiter.allow(ip) {
+
+		if !limiter.Allow(c.Request.Context(), ip) {
 			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }
 
-// allow 检查是否允许请求
-func (rl *rateLimiter) allow(key string) bool {
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-	
-	now := time.Now()
-	
-	// 获取该IP的请求记录
-	requests := rl.requests[key]
-	
-	// 清理过期的请求记录
-	var validRequests []time.Time
-	for _, req := range requests {
-		if now.Sub(req) < rl.window {
-			validRequests = append(validRequests, req)
-		}
+// Allow 检查是否允许请求（使用Redis滑动窗口算法）
+func (rl *RedisRateLimiter) Allow(ctx context.Context, key string) bool {
+	// 获取Redis客户端
+	rdb := database.GetRedis()
+	if rdb == nil {
+		// Redis未初始化时，允许请求通过（降级策略）
+		return true
 	}
-	
-	// 检查是否超过限制
-	if len(validRequests) >= rl.limit {
-		rl.requests[key] = validRequests
-		return false
+
+	// Redis key
+	redisKey := fmt.Sprintf("rate_limit:%s", key)
+
+	// 当前时间戳（毫秒）
+	now := time.Now().UnixMilli()
+
+	// 窗口开始时间
+	windowStart := now - rl.window.Milliseconds()
+
+	// 使用Redis Pipeline提高性能
+	pipe := rdb.Pipeline()
+
+	// 1. 删除窗口外的记录
+	pipe.ZRemRangeByScore(ctx, redisKey, "0", strconv.FormatInt(windowStart, 10))
+
+	// 2. 统计当前窗口内的请求数
+	countCmd := pipe.ZCard(ctx, redisKey)
+
+	// 3. 添加当前请求（确保member唯一，避免同毫秒并发覆盖）
+	randomBytes := make([]byte, 8)
+	if _, rerr := rand.Read(randomBytes); rerr != nil {
+		// 退化为纳秒时间戳字符串，极端情况下也能较好避免碰撞
+		randomBytes = []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
 	}
-	
-	// 添加当前请求
-	validRequests = append(validRequests, now)
-	rl.requests[key] = validRequests
-	
-	return true
+	member := fmt.Sprintf("%d-%s", now, hex.EncodeToString(randomBytes))
+	pipe.ZAdd(ctx, redisKey, redis.Z{
+		Score:  float64(now),
+		Member: member,
+	})
+
+	// 4. 设置过期时间
+	pipe.Expire(ctx, redisKey, rl.window+time.Minute) // 多给1分钟缓冲
+
+	// 执行Pipeline
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		// Redis出错时，允许请求通过（降级策略）
+		return true
+	}
+
+	// 检查请求数是否超限
+	count := countCmd.Val()
+	return count < int64(rl.limit)
+}
+
+// GetRemainingRequests 获取剩余请求次数
+func (rl *RedisRateLimiter) GetRemainingRequests(ctx context.Context, key string) int {
+	// 获取Redis客户端
+	rdb := database.GetRedis()
+	if rdb == nil {
+		return rl.limit // Redis未初始化时返回最大值
+	}
+
+	redisKey := fmt.Sprintf("rate_limit:%s", key)
+
+	// 当前时间戳（毫秒）
+	now := time.Now().UnixMilli()
+	windowStart := now - rl.window.Milliseconds()
+
+	// 清理过期记录并统计
+	pipe := rdb.Pipeline()
+	pipe.ZRemRangeByScore(ctx, redisKey, "0", strconv.FormatInt(windowStart, 10))
+	countCmd := pipe.ZCard(ctx, redisKey)
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return rl.limit // 出错时返回最大值
+	}
+
+	used := int(countCmd.Val())
+	remaining := rl.limit - used
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	return remaining
+}
+
+// RateLimitInfoMiddleware 添加限流信息到响应头
+func RateLimitInfoMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+		limiter := getDefaultLimiter()
+
+		// 获取剩余请求次数
+		remaining := limiter.GetRemainingRequests(c.Request.Context(), ip)
+
+		// 添加到响应头
+		c.Header("X-RateLimit-Limit", strconv.Itoa(limiter.limit))
+		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
+		c.Header("X-RateLimit-Window", limiter.window.String())
+
+		c.Next()
+	}
 }
