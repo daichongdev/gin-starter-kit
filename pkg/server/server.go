@@ -25,7 +25,8 @@ func New(cfg *config.Config) *Server {
 	}
 }
 
-func (s *Server) SetupHTTP2(handler http.Handler) http.Handler {
+func (s *Server) Start(handler http.Handler) error {
+	// 配置HTTP/2
 	h2Config := s.config.Server.HTTP2
 	h2s := &http2.Server{
 		MaxConcurrentStreams:         h2Config.MaxConcurrentStreams,
@@ -55,7 +56,7 @@ func (s *Server) SetupHTTP2(handler http.Handler) http.Handler {
 	// 创建HTTP服务器
 	s.srv = &http.Server{
 		Addr:              fmt.Sprintf(":%d", s.config.Server.Port),
-		Handler:           finalHandler,
+		Handler:           finalHandler, // 使用配置好的handler
 		ReadTimeout:       s.config.Server.ReadTimeout,
 		WriteTimeout:      s.config.Server.WriteTimeout,
 		IdleTimeout:       h2Config.IdleTimeout,
@@ -75,12 +76,9 @@ func (s *Server) SetupHTTP2(handler http.Handler) http.Handler {
 		)
 	}
 
-	return finalHandler
-}
-
-func (s *Server) Start() error {
 	logger.Info("Server starting",
 		zap.String("address", s.srv.Addr),
+		zap.String("protocol", protocolInfo),
 		zap.Duration("read_timeout", s.config.Server.ReadTimeout),
 		zap.Duration("write_timeout", s.config.Server.WriteTimeout),
 		zap.Bool("h2c_enabled", s.config.Server.EnableH2C),

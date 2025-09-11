@@ -1,6 +1,7 @@
 package model
 
 import (
+	"gin-demo/pkg/types"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
@@ -17,9 +18,9 @@ type User struct {
 	Age      int    `json:"age"`
 	Phone    string `json:"phone" gorm:"type:varchar(11);unique;comment:手机号码;default:''"`
 
-	// GORM默认字段放在最后
-	CreatedAt time.Time      `json:"created_at" gorm:"comment:创建时间"`
-	UpdatedAt time.Time      `json:"updated_at" gorm:"comment:更新时间"`
+	// GORM默认字段放在最后，使用自定义序列化方法
+	CreatedAt types.JSONTime `json:"created_at" gorm:"comment:创建时间"`
+	UpdatedAt types.JSONTime `json:"updated_at" gorm:"comment:更新时间"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"comment:删除时间"`
 }
 
@@ -86,13 +87,13 @@ type UpdateUserRequest struct {
 }
 
 type UserResponse struct {
-	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Age       int       `json:"age"`
-	Phone     string    `json:"phone"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uint           `json:"id"`
+	Name      string         `json:"name"`
+	Email     string         `json:"email"`
+	Age       int            `json:"age"`
+	Phone     string         `json:"phone"`
+	CreatedAt types.JSONTime `json:"created_at"`
+	UpdatedAt types.JSONTime `json:"updated_at"`
 }
 
 type JWTClaims struct {

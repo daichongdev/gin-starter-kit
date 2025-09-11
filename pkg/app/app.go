@@ -12,13 +12,12 @@ import (
 	"gin-demo/pkg/queue"
 	"gin-demo/pkg/server"
 	"gin-demo/router"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
-
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 type App struct {
@@ -31,12 +30,14 @@ func New() *App {
 }
 
 func (a *App) Initialize() error {
-	// 设置Go运行时参数
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// 初始化配置
+	// 首先初始化配置
 	config.InitConfig()
 	a.config = config.GetConfig()
+
+	gin.SetMode(a.config.Server.Mode)
+
+	// 设置Go运行时参数
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// 初始化日志系统
 	if err := logger.InitLogger(a.config); err != nil {
@@ -107,12 +108,9 @@ func (a *App) Run() error {
 	// 设置路由
 	r := a.setupRouter()
 
-	// 配置HTTP/2
-	a.server.SetupHTTP2(r)
-
-	// 启动服务器
+	// 启动服务器（传入路由handler）
 	go func() {
-		if err := a.server.Start(); err != nil {
+		if err := a.server.Start(r); err != nil {
 			logger.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()
