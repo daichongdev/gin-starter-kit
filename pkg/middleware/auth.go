@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"gin-demo/model"
+	"gin-demo/model/tool"
 	"gin-demo/pkg/auth"
 	"net/http"
 	"strings"
@@ -15,7 +15,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		// 从Header中获取Authorization
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, model.ErrorResponse("请提供有效的JWT令牌"))
+			c.JSON(http.StatusUnauthorized, tool.ErrorResponse("请提供有效的JWT令牌"))
 			c.Abort()
 			return
 		}
@@ -23,7 +23,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		// 检查Bearer前缀
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, model.ErrorResponse("授权头格式无效，应为: Bearer <token>"))
+			c.JSON(http.StatusUnauthorized, tool.ErrorResponse("授权头格式无效，应为: Bearer <token>"))
 			c.Abort()
 			return
 		}
@@ -40,7 +40,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 				message = "无效的JWT令牌"
 			}
 
-			c.JSON(http.StatusUnauthorized, model.ErrorResponse(message))
+			c.JSON(http.StatusUnauthorized, tool.ErrorResponse(message))
 			c.Abort()
 			return
 		}

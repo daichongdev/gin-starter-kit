@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
-	"gin-demo/model"
+	"gin-demo/model/tool"
 	"gin-demo/pkg/cron"
 	"gin-demo/pkg/logger"
 	"gin-demo/pkg/middleware"
@@ -59,7 +59,7 @@ func (a *App) Initialize() error {
 	database.InitDB()
 
 	// 自动迁移
-	if err := model.Registry.AutoMigrate(); err != nil {
+	if err := tool.Registry.AutoMigrate(); err != nil {
 		return fmt.Errorf("auto migration failed: %w", err)
 	}
 

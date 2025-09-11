@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
-	"gin-demo/model"
+	"gin-demo/model/tool"
 	"net/http"
 	"strconv"
 	"sync"
@@ -72,7 +72,7 @@ func RateLimitMiddleware() gin.HandlerFunc {
 		limiter := getDefaultLimiter()
 
 		if !limiter.Allow(c.Request.Context(), ip) {
-			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
+			c.JSON(http.StatusTooManyRequests, tool.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return
 		}
@@ -88,7 +88,7 @@ func AuthRateLimitMiddleware() gin.HandlerFunc {
 		limiter := getAuthLimiter()
 
 		if !limiter.Allow(c.Request.Context(), ip) {
-			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
+			c.JSON(http.StatusTooManyRequests, tool.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return
 		}
@@ -105,7 +105,7 @@ func CustomRateLimitMiddleware(limit int, window time.Duration) gin.HandlerFunc 
 		ip := c.ClientIP()
 
 		if !limiter.Allow(c.Request.Context(), ip) {
-			c.JSON(http.StatusTooManyRequests, model.ErrorResponse("请求过于频繁，请稍后再试"))
+			c.JSON(http.StatusTooManyRequests, tool.ErrorResponse("请求过于频繁，请稍后再试"))
 			c.Abort()
 			return
 		}

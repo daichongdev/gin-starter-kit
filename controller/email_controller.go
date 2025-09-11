@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"gin-demo/model"
+	"gin-demo/model/tool"
 	"gin-demo/service"
 	"net/http"
 	"strconv"
@@ -33,18 +33,18 @@ type SendEmailRequest struct {
 func (c *EmailController) SendEmail(ctx *gin.Context) {
 	var req SendEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, model.ErrorResponse(err.Error()))
+		ctx.JSON(http.StatusBadRequest, tool.ErrorResponse(err.Error()))
 		return
 	}
 
 	// 发送邮件到队列
 	err := c.emailService.SendEmail(req.To, req.Subject, req.Body, req.IsHTML)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, model.ErrorResponse(err.Error()))
+		ctx.JSON(http.StatusInternalServerError, tool.ErrorResponse(err.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, model.SuccessResponse("邮件已加入发送队列", nil))
+	ctx.JSON(http.StatusOK, tool.SuccessResponse("邮件已加入发送队列", nil))
 }
 
 // SendTestEmail 发送测试邮件接口
@@ -60,11 +60,11 @@ func (c *EmailController) SendTestEmail(ctx *gin.Context) {
 	// 发送测试邮件
 	err := c.emailService.SendEmail([]string{to}, subject, body, isHTML)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, model.ErrorResponse(err.Error()))
+		ctx.JSON(http.StatusInternalServerError, tool.ErrorResponse(err.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, model.SuccessResponse("测试邮件已加入发送队列", gin.H{
+	ctx.JSON(http.StatusOK, tool.SuccessResponse("测试邮件已加入发送队列", gin.H{
 		"to":      to,
 		"subject": subject,
 		"body":    body,
@@ -75,7 +75,7 @@ func (c *EmailController) SendTestEmail(ctx *gin.Context) {
 // GetEmailStatus 获取邮件队列状态（用于调试）
 func (c *EmailController) GetEmailStatus(ctx *gin.Context) {
 	// 这里可以添加队列状态查询逻辑
-	ctx.JSON(http.StatusOK, model.SuccessResponse("邮件队列状态", gin.H{
+	ctx.JSON(http.StatusOK, tool.SuccessResponse("邮件队列状态", gin.H{
 		"status": "running",
 		"queue":  "email_queue",
 	}))

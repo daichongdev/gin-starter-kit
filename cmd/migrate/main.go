@@ -3,7 +3,7 @@ package main
 import (
 	"gin-demo/config"
 	"gin-demo/database"
-	"gin-demo/model"
+	"gin-demo/model/tool"
 	"gin-demo/pkg/logger"
 	"gin-demo/pkg/migration"
 )
@@ -20,7 +20,7 @@ func main() {
 	database.InitDB()
 
 	// 创建迁移管理器
-	manager := migration.NewManager(model.Registry)
+	manager := migration.NewManager(tool.Registry)
 
 	// 运行迁移命令
 	manager.RunCommand()

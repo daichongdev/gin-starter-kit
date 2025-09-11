@@ -1,6 +1,7 @@
-package model
+package tool
 
 import (
+	"gin-demo/model"
 	"gin-demo/pkg/migration"
 )
 
@@ -14,5 +15,5 @@ func init() {
 
 // registerModels 注册需要自动迁移的模型
 func registerModels() {
-	Registry.Register(&User{})
+	Registry.Register(&model.User{})
 }

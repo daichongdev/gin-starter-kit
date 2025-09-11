@@ -2,6 +2,7 @@ package service
 
 import (
 	"gin-demo/model"
+	"gin-demo/model/tool"
 	"gin-demo/repository"
 )
 
@@ -121,14 +122,14 @@ func (s *UserService) DeleteUser(id uint) error {
 }
 
 // GetUsersWithPagination 分页获取用户列表
-func (s *UserService) GetUsersWithPagination(pagination *model.PaginationRequest) (*model.PaginateResult, error) {
+func (s *UserService) GetUsersWithPagination(pagination *tool.PaginationRequest) (*tool.PaginateResult, error) {
 	users, total, err := s.userRepo.GetAllWithPagination(pagination)
 	if err != nil {
 		return nil, err
 	}
 
 	// 使用分页结果构造器
-	result := model.NewPaginateResult(map[string]interface{}{
+	result := tool.NewPaginateResult(map[string]interface{}{
 		"users": users,
 	}, pagination, total)
 
@@ -136,13 +137,13 @@ func (s *UserService) GetUsersWithPagination(pagination *model.PaginationRequest
 }
 
 // SearchUsersWithPagination 带搜索的分页查询用户
-func (s *UserService) SearchUsersWithPagination(pagination *model.PaginationRequest, keyword string) (*model.PaginateResult, error) {
+func (s *UserService) SearchUsersWithPagination(pagination *tool.PaginationRequest, keyword string) (*tool.PaginateResult, error) {
 	users, total, err := s.userRepo.GetAllWithPaginationAndSearch(pagination, keyword)
 	if err != nil {
 		return nil, err
 	}
 
-	result := model.NewPaginateResult(map[string]interface{}{
+	result := tool.NewPaginateResult(map[string]interface{}{
 		"users": users,
 	}, pagination, total)
 

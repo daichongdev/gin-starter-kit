@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"gin-demo/model"
+	"gin-demo/model/tool"
 	"gin-demo/pkg/logger"
 	"net/http"
 
@@ -27,11 +27,11 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 			// 根据错误类型返回不同的HTTP状态码
 			switch err.Type {
 			case gin.ErrorTypeBind:
-				c.JSON(http.StatusBadRequest, model.ErrorResponse("请求格式无效: "+err.Error()))
+				c.JSON(http.StatusBadRequest, tool.ErrorResponse("请求格式无效: "+err.Error()))
 			case gin.ErrorTypePublic:
-				c.JSON(http.StatusInternalServerError, model.ErrorResponse("服务器内部错误"))
+				c.JSON(http.StatusInternalServerError, tool.ErrorResponse("服务器内部错误"))
 			default:
-				c.JSON(http.StatusInternalServerError, model.ErrorResponse("服务器内部错误"))
+				c.JSON(http.StatusInternalServerError, tool.ErrorResponse("服务器内部错误"))
 			}
 		}
 	}
@@ -46,7 +46,7 @@ func NotFoundHandler() gin.HandlerFunc {
 			logger.String("client_ip", c.ClientIP()),
 			logger.String("user_agent", c.Request.UserAgent()))
 
-		c.JSON(http.StatusNotFound, model.ErrorResponse("请求的接口不存在"))
+		c.JSON(http.StatusNotFound, tool.ErrorResponse("请求的接口不存在"))
 	}
 }
 
@@ -58,6 +58,6 @@ func MethodNotAllowedHandler() gin.HandlerFunc {
 			logger.String("method", c.Request.Method),
 			logger.String("client_ip", c.ClientIP()))
 
-		c.JSON(http.StatusMethodNotAllowed, model.ErrorResponse("HTTP方法不被允许"))
+		c.JSON(http.StatusMethodNotAllowed, tool.ErrorResponse("HTTP方法不被允许"))
 	}
 }

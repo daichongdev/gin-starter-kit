@@ -1,6 +1,8 @@
-package model
+package tool
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 // PaginationRequest 分页请求参数
 type PaginationRequest struct {

@@ -1,4 +1,4 @@
-package model
+package tool
 
 // APIResponse 统一API响应结构
 type APIResponse struct {
