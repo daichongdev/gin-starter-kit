@@ -56,16 +56,16 @@
 
 ## 🛠️ 技术栈
 
-| 组件 | 技术选型 | 说明 |
-|------|----------|------|
-| **Web 框架** | [Gin](https://github.com/gin-gonic/gin) | 高性能 HTTP Web 框架 |
-| **ORM 框架** | [GORM](https://gorm.io/) | 功能丰富的 ORM 库 |
-| **数据库** | MySQL 8.0+ | 主数据库 |
-| **缓存** | Redis 6.0+ | 缓存和限流存储 |
-| **日志系统** | [Zap](https://github.com/uber-go/zap) | 高性能结构化日志 |
-| **配置管理** | [Viper](https://github.com/spf13/viper) | 配置文件管理 |
-| **认证** | JWT | JSON Web Token |
-| **参数验证** | [Validator](https://github.com/go-playground/validator) | 参数验证 |
+| 组件         | 技术选型                                                    | 说明              |
+|------------|---------------------------------------------------------|-----------------|
+| **Web 框架** | [Gin](https://github.com/gin-gonic/gin)                 | 高性能 HTTP Web 框架 |
+| **ORM 框架** | [GORM](https://gorm.io/)                                | 功能丰富的 ORM 库     |
+| **数据库**    | MySQL 8.0+                                              | 主数据库            |
+| **缓存**     | Redis 6.0+                                              | 缓存和限流存储         |
+| **日志系统**   | [Zap](https://github.com/uber-go/zap)                   | 高性能结构化日志        |
+| **配置管理**   | [Viper](https://github.com/spf13/viper)                 | 配置文件管理          |
+| **认证**     | JWT                                                     | JSON Web Token  |
+| **参数验证**   | [Validator](https://github.com/go-playground/validator) | 参数验证            |
 
 ## 📁 项目结构
 ```
