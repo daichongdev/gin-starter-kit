@@ -5,7 +5,7 @@ app:
   env: "development"
   debug: true
 
-# 服务器配置
+# 服务器配置优化
 server:
   port: 8080
   mode: "debug"
@@ -23,7 +23,7 @@ server:
       limit: 20
       window: "1m"  # 认证接口更严格的限流
 
-# 数据库配置
+# 数据库配置优化
 database:
   mysql:
     host: "127.0.0.1"
@@ -34,10 +34,10 @@ database:
     charset: "utf8mb4"
     parse_time: true
     loc: "Local"
-    max_idle_conns: 20
-    max_open_conns: 100
-    conn_max_lifetime: "3600s"
-    conn_max_idle_time: "1800s"
+    max_idle_conns: 50        # 增加空闲连接数
+    max_open_conns: 200       # 增加最大连接数
+    conn_max_lifetime: "1800s" # 减少连接生命周期
+    conn_max_idle_time: "900s" # 减少空闲时间
     dial_timeout: "10s"
     read_timeout: "30s"
     write_timeout: "30s"
@@ -46,14 +46,17 @@ database:
     port: 6379
     password: ""
     db: 12
-    pool_size: 20
-    min_idle_conns: 5
+    pool_size: 50             # 增加连接池大小
+    min_idle_conns: 10        # 增加最小空闲连接
     max_retries: 3
     pool_timeout: "30s"
     conn_max_idle_time: "1800s"
     dial_timeout: "10s"
-    read_timeout: "10s"
-    write_timeout: "10s"
+    read_timeout: "15s"          # 减少读取超时
+    write_timeout: "15s"         # 减少写入超时
+    idle_timeout: "60s"          # 添加空闲超时
+    max_header_bytes: 2097152    # 2MB
+    max_request_size: 52428800   # 50MB
 
 # JWT配置
 jwt:
@@ -62,9 +65,9 @@ jwt:
   refresh_expires_hours: 720
   issuer: "gin-demo"
 
-# 日志配置
+# 日志配置优化
 log:
-  level: "info"
+  level: "error"
   format: "json"
   enable_color: true
   enable_caller: false
@@ -73,24 +76,22 @@ log:
   # 性能优化配置
   performance:
     async_enabled: true           # 启用异步日志
-    buffer_size: 1000            # 日志缓冲区大小
-    worker_count: 4              # 工作协程数量（建议设置为CPU核心数）
-    request_body_max_size: 10240 # 请求体记录最大大小(字节) 10KB
-    enable_sql_trace: true       # 启用SQL追踪
-    batch_write_enabled: true    # 启用批量写入
-    batch_size: 100              # 批量写入大小
-    flush_interval: "1s"         # 刷新间隔
+    buffer_size: 2000            # 增加缓冲区
+    worker_count: 8              # 增加工作协程
+    batch_write_enabled: true
+    batch_size: 200              # 增加批量大小
+    flush_interval: "500ms"      # 减少刷新间隔
     queue_full_policy: "drop"    # 队列满时策略: drop(丢弃) 或 sync(同步处理)
 
   console:
     enabled: true
-    level: "info"
+    level: "error"
     format: "text"
     enable_color: true
 
   file:
     enabled: true
-    level: "info"
+    level: "error"
     format: "json"
     filename: "./logs/app.log"
     max_size: 50      # 增大到50MB以减少文件切换频率
@@ -110,9 +111,9 @@ log:
 
   database:
     enabled: true
-    level: "info"
-    slow_threshold: 200
-    log_all_sql: false           # 生产环境建议关闭，只记录慢查询
+    level: "error"
+    log_all_sql: false           # 生产环境关闭
+    slow_threshold: 100          # 降低慢查询阈值
     ignore_record_not_found: true
     filename: "./logs/database.log"
     max_size: 30      # 数据库日志可能较多

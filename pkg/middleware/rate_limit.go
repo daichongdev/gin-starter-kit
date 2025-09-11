@@ -2,8 +2,6 @@ package middleware
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
@@ -14,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
 // RedisRateLimiter Redis限流器
@@ -118,57 +115,41 @@ func CustomRateLimitMiddleware(limit int, window time.Duration) gin.HandlerFunc 
 }
 
 // Allow 检查是否允许请求（使用Redis滑动窗口算法）
+// 优化限流算法，使用滑动窗口
 func (rl *RedisRateLimiter) Allow(ctx context.Context, key string) bool {
-	// 获取Redis客户端
-	rdb := database.GetRedis()
-	if rdb == nil {
-		// Redis未初始化时，允许请求通过（降级策略）
-		return true
-	}
+	now := time.Now().Unix()
+	windowStart := now - int64(rl.window.Seconds())
 
-	// Redis key
-	redisKey := fmt.Sprintf("rate_limit:%s", key)
+	// 使用Lua脚本保证原子性
+	luaScript := `
+		local key = KEYS[1]
+		local window_start = ARGV[1]
+		local now = ARGV[2]
+		local limit = tonumber(ARGV[3])
+		
+		-- 清理过期数据
+		redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
+		
+		-- 获取当前计数
+		local current = redis.call('ZCARD', key)
+		
+		if current < limit then
+			-- 添加当前请求
+			redis.call('ZADD', key, now, now)
+			redis.call('EXPIRE', key, 3600)
+			return 1
+		else
+			return 0
+		end
+	`
 
-	// 当前时间戳（毫秒）
-	now := time.Now().UnixMilli()
-
-	// 窗口开始时间
-	windowStart := now - rl.window.Milliseconds()
-
-	// 使用Redis Pipeline提高性能
-	pipe := rdb.Pipeline()
-
-	// 1. 删除窗口外的记录
-	pipe.ZRemRangeByScore(ctx, redisKey, "0", strconv.FormatInt(windowStart, 10))
-
-	// 2. 统计当前窗口内的请求数
-	countCmd := pipe.ZCard(ctx, redisKey)
-
-	// 3. 添加当前请求（确保member唯一，避免同毫秒并发覆盖）
-	randomBytes := make([]byte, 8)
-	if _, rerr := rand.Read(randomBytes); rerr != nil {
-		// 退化为纳秒时间戳字符串，极端情况下也能较好避免碰撞
-		randomBytes = []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
-	}
-	member := fmt.Sprintf("%d-%s", now, hex.EncodeToString(randomBytes))
-	pipe.ZAdd(ctx, redisKey, redis.Z{
-		Score:  float64(now),
-		Member: member,
-	})
-
-	// 4. 设置过期时间
-	pipe.Expire(ctx, redisKey, rl.window+time.Minute) // 多给1分钟缓冲
-
-	// 执行Pipeline
-	_, err := pipe.Exec(ctx)
+	result, err := database.GetRedis().Eval(ctx, luaScript, []string{key},
+		windowStart, now, rl.limit).Result()
 	if err != nil {
-		// Redis出错时，允许请求通过（降级策略）
-		return true
+		return false
 	}
 
-	// 检查请求数是否超限
-	count := countCmd.Val()
-	return count < int64(rl.limit)
+	return result.(int64) == 1
 }
 
 // GetRemainingRequests 获取剩余请求次数

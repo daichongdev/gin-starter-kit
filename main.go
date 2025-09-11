@@ -11,6 +11,7 @@ import (
 	"gin-demo/pkg/middleware"
 	"gin-demo/pkg/queue"
 	"gin-demo/router"
+	"golang.org/x/net/http2"
 	"net/http"
 	"os"
 	"os/signal"
@@ -79,6 +80,15 @@ func main() {
 		WriteTimeout:   cfg.Server.WriteTimeout,
 		IdleTimeout:    120 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1MB
+	}
+
+	// 启用HTTP/2
+	if err := http2.ConfigureServer(srv, &http2.Server{
+		MaxConcurrentStreams: 250,
+		MaxReadFrameSize:     16384,
+		IdleTimeout:          120 * time.Second,
+	}); err != nil {
+		logger.Error("Failed to configure HTTP/2", zap.Error(err))
 	}
 
 	// 启动服务器
