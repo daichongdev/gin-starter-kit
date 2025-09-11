@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"gin-demo/model"
 	"gin-demo/pkg/auth"
@@ -20,7 +19,7 @@ func NewAuthService() *AuthService {
 	}
 }
 
-// 用户注册
+// Register 用户注册
 func (s *AuthService) Register(req *model.RegisterRequest) (*model.LoginResponse, error) {
 	// 检查邮箱是否已存在
 	exists, err := s.userRepo.EmailExists(req.Email)
@@ -81,8 +80,8 @@ func (s *AuthService) Register(req *model.RegisterRequest) (*model.LoginResponse
 	}, nil
 }
 
-// 用户登录
-func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error) {
+// Login 用户登录
+func (s *AuthService) Login(req *model.LoginRequest) (*model.LoginResponse, error) {
 	// 根据邮箱查找用户
 	user, err := s.userRepo.GetByEmail(req.Email)
 	if err != nil {
@@ -130,8 +129,8 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 	}, nil
 }
 
-// 获取当前用户信息
-func (s *AuthService) GetCurrentUser(ctx context.Context, userID uint) (*model.UserResponse, error) {
+// GetCurrentUser 获取当前用户信息
+func (s *AuthService) GetCurrentUser(userID uint) (*model.UserResponse, error) {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		logger.Error("Failed to get current user",
