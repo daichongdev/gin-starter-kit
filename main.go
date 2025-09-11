@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"gin-demo/config"
 	"gin-demo/database"
@@ -12,12 +13,12 @@ import (
 	"gin-demo/pkg/queue"
 	"gin-demo/router"
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -72,34 +73,81 @@ func main() {
 	// 初始化路由
 	r := router.SetupRouter()
 
-	// 高性能HTTP服务器配置
-	srv := &http.Server{
-		Addr:           fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler:        r,
-		ReadTimeout:    cfg.Server.ReadTimeout,
-		WriteTimeout:   cfg.Server.WriteTimeout,
-		IdleTimeout:    120 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1MB
+	// 添加HTTP/2推送支持检测中间件
+	r.Use(func(c *gin.Context) {
+		if pusher := c.Writer.Pusher(); pusher != nil {
+			c.Header("X-HTTP2-Push", "supported")
+			c.Header("X-HTTP2-Protocol", "h2")
+		}
+		c.Next()
+	})
+
+	// 从配置文件读取HTTP/2配置
+	h2Config := cfg.Server.HTTP2
+	h2s := &http2.Server{
+		MaxConcurrentStreams:         h2Config.MaxConcurrentStreams,
+		MaxReadFrameSize:             h2Config.MaxReadFrameSize,
+		IdleTimeout:                  h2Config.IdleTimeout,
+		MaxUploadBufferPerConnection: h2Config.MaxUploadBufferPerConnection,
+		MaxUploadBufferPerStream:     h2Config.MaxUploadBufferPerStream,
+		PermitProhibitedCipherSuites: h2Config.PermitProhibitedCipherSuites,
 	}
 
-	// 启用HTTP/2
-	if err := http2.ConfigureServer(srv, &http2.Server{
-		MaxConcurrentStreams: 250,
-		MaxReadFrameSize:     16384,
-		IdleTimeout:          120 * time.Second,
-	}); err != nil {
+	// 根据配置决定是否使用 h2c
+	var handler http.Handler = r
+	var protocolInfo string
+
+	if cfg.Server.EnableH2C {
+		handler = h2c.NewHandler(r, h2s)
+		protocolInfo = "HTTP/2 Cleartext (h2c)"
+		logger.Info("HTTP/2 Cleartext (h2c) enabled",
+			zap.Uint32("max_concurrent_streams", h2Config.MaxConcurrentStreams),
+			zap.Duration("idle_timeout", h2Config.IdleTimeout),
+			zap.Uint32("max_read_frame_size", h2Config.MaxReadFrameSize),
+		)
+	} else {
+		protocolInfo = "HTTP/2 over TLS"
+		logger.Info("HTTP/2 over TLS only (h2c disabled)")
+	}
+
+	// 高性能HTTP服务器配置
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler:           handler,
+		ReadTimeout:       cfg.Server.ReadTimeout,
+		WriteTimeout:      cfg.Server.WriteTimeout,
+		IdleTimeout:       h2Config.IdleTimeout,
+		MaxHeaderBytes:    cfg.Server.MaxHeaderBytes,
+		ReadHeaderTimeout: h2Config.ReadHeaderTimeout,
+	}
+
+	// 启用HTTP/2（对于 HTTPS 连接）
+	if err := http2.ConfigureServer(srv, h2s); err != nil {
 		logger.Error("Failed to configure HTTP/2", zap.Error(err))
+	} else {
+		logger.Info("HTTP/2 server configured successfully",
+			zap.String("protocol", protocolInfo),
+			zap.Uint32("max_concurrent_streams", h2Config.MaxConcurrentStreams),
+			zap.Uint32("max_read_frame_size", h2Config.MaxReadFrameSize),
+			zap.Duration("idle_timeout", h2Config.IdleTimeout),
+			zap.Int32("max_upload_buffer_per_connection", h2Config.MaxUploadBufferPerConnection),
+			zap.Int32("max_upload_buffer_per_stream", h2Config.MaxUploadBufferPerStream),
+		)
 	}
 
 	// 启动服务器
 	go func() {
 		logger.Info("Server starting",
 			zap.String("address", srv.Addr),
+			zap.String("protocol", protocolInfo),
 			zap.Duration("read_timeout", cfg.Server.ReadTimeout),
 			zap.Duration("write_timeout", cfg.Server.WriteTimeout),
+			zap.Duration("read_header_timeout", h2Config.ReadHeaderTimeout),
+			zap.Bool("h2c_enabled", cfg.Server.EnableH2C),
+			zap.String("gin_mode", gin.Mode()),
 		)
 
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()
