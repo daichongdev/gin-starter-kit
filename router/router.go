@@ -22,7 +22,7 @@ func SetupRouter() *gin.Engine {
 	r.Use(middleware.ErrorHandlerMiddleware())
 
 	// 添加限流中间件
-	r.Use(middleware.RateLimitMiddleware())
+	//r.Use(middleware.RateLimitMiddleware())
 
 	// GZIP压缩中间件
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -47,6 +47,7 @@ func SetupRouter() *gin.Engine {
 
 	// API路由组
 	api := r.Group("/api")
+	api.Use(middleware.RateLimitMiddleware())
 	{
 		SetupEmailRoutes(api)
 
