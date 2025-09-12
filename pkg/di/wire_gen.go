@@ -24,10 +24,16 @@ func InitializeContainer() *Container {
 	authController := controller.NewAuthController(authService)
 	emailService := service.NewEmailService()
 	emailController := controller.NewEmailController(emailService)
+	redisBasicService := service.NewRedisBasicService()
 	container := &Container{
 		UserController:  userController,
 		AuthController:  authController,
 		EmailController: emailController,
+		UserService:     userService,
+		AuthService:     authService,
+		EmailService:    emailService,
+		RedisService:    redisBasicService,
+		UserRepository:  userRepository,
 	}
 	return container
 }
@@ -38,7 +44,7 @@ func InitializeContainer() *Container {
 var RepositorySet = wire.NewSet(repository.NewUserRepository)
 
 // ServiceSet Service 层的 Provider 集合
-var ServiceSet = wire.NewSet(service.NewUserService, service.NewAuthService, service.NewEmailService)
+var ServiceSet = wire.NewSet(service.NewUserService, service.NewAuthService, service.NewEmailService, service.NewRedisBasicService)
 
 // ControllerSet Controller 层的 Provider 集合
 var ControllerSet = wire.NewSet(controller.NewUserController, controller.NewAuthController, controller.NewEmailController)
@@ -55,4 +61,9 @@ type Container struct {
 	UserController  *controller.UserController
 	AuthController  *controller.AuthController
 	EmailController *controller.EmailController
+	UserService     *service.UserService
+	AuthService     *service.AuthService
+	EmailService    *service.EmailService
+	RedisService    *service.RedisBasicService
+	UserRepository  *repository.UserRepository
 }

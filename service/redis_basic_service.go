@@ -12,10 +12,14 @@ type RedisBasicService struct {
 	rdb *redis.Client
 }
 
+// NewRedisBasicService 添加构造函数用于wire
 func NewRedisBasicService() *RedisBasicService {
-	return &RedisBasicService{
-		rdb: database.GetRedis(),
-	}
+	return &RedisBasicService{}
+}
+
+// 获取Redis客户端的方法
+func (s *RedisBasicService) getRedisClient() *redis.Client {
+	return database.GetRedis()
 }
 
 func (r *RedisBasicService) SetString(ctx context.Context, key, value string, expiration time.Duration) error {
