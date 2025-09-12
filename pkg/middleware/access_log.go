@@ -54,7 +54,7 @@ func initAsyncLogger() {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		asyncLogger = &AsyncLogger{
-			logChan:    make(chan *LogEntry, 100),             // 缓冲1000条日志
+			logChan:    make(chan *LogEntry, 100),             // 缓冲100条日志
 			workerPool: make(chan struct{}, runtime.NumCPU()), // 工作池大小为CPU核心数
 			ctx:        ctx,
 			cancel:     cancel,
