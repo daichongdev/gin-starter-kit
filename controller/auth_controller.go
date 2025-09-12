@@ -49,7 +49,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.authService.Login(ctx, &req)
+	response, err := c.authService.Login(&req)
 	if err != nil {
 		if err.Error() == "invalid email or password" {
 			ctx.JSON(http.StatusUnauthorized, tool.ErrorResponse("邮箱或密码错误"))
@@ -70,7 +70,7 @@ func (c *AuthController) GetProfile(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.authService.GetCurrentUser(ctx, userID.(uint))
+	user, err := c.authService.GetCurrentUser(userID.(uint))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, tool.ErrorResponse("获取用户信息失败: "+err.Error()))
 		return
