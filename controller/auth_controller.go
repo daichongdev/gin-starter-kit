@@ -14,9 +14,9 @@ type AuthController struct {
 	authService *service.AuthService
 }
 
-func NewAuthController() *AuthController {
+func NewAuthController(authService *service.AuthService) *AuthController {
 	return &AuthController{
-		authService: service.NewAuthService(),
+		authService: authService,
 	}
 }
 

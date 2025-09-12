@@ -7,9 +7,7 @@ import (
 )
 
 // SetupEmailRoutes 设置邮件相关路由
-func SetupEmailRoutes(api *gin.RouterGroup) {
-	emailController := controller.NewEmailController()
-
+func SetupEmailRoutes(api *gin.RouterGroup, emailController *controller.EmailController) {
 	emailGroup := api.Group("/email_queue")
 	emailGroup.POST("/send", emailController.SendEmail)
 

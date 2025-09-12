@@ -13,9 +13,9 @@ type EmailController struct {
 	emailService *service.EmailService
 }
 
-func NewEmailController() *EmailController {
+func NewEmailController(emailService *service.EmailService) *EmailController {
 	return &EmailController{
-		emailService: service.NewEmailService(),
+		emailService: emailService,
 	}
 }
 

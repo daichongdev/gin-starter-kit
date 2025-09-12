@@ -8,9 +8,7 @@ import (
 )
 
 // SetupAuthRoutes 设置认证相关路由
-func SetupAuthRoutes(authGroup *gin.RouterGroup) {
-	authController := controller.NewAuthController()
-	
+func SetupAuthRoutes(authGroup *gin.RouterGroup, authController *controller.AuthController) {
 	// 公开路由（无需认证，但有限流）
 	authGroup.POST("/register", authController.Register)
 	authGroup.POST("/login", authController.Login)

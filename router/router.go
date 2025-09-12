@@ -1,6 +1,7 @@
 package router
 
 import (
+	"gin-demo/pkg/di"
 	"gin-demo/pkg/middleware"
 	"time"
 
@@ -14,14 +15,14 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.New()
 
+	// 初始化依赖注入容器
+	container := di.InitializeContainer()
+
 	// 使用我们的访问日志中间件替代默认的日志中间件
 	r.Use(middleware.AccessLogMiddleware())
 
 	// 添加全局错误处理中间件（包含panic恢复）
 	r.Use(middleware.ErrorHandlerMiddleware())
-
-	// 添加限流中间件
-	//r.Use(middleware.RateLimitMiddleware())
 
 	// GZIP压缩中间件
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -48,15 +49,15 @@ func SetupRouter() *gin.Engine {
 	api := r.Group("/api")
 	api.Use(middleware.RateLimitMiddleware())
 	{
-		SetupEmailRoutes(api)
+		SetupEmailRoutes(api, container.EmailController)
 
-		// 认证路由（无需JWT认证，但有更严格的限流）
+		// 认证路由
 		auth := api.Group("/auth")
-		auth.Use(middleware.CustomRateLimitMiddleware(20, time.Minute)) // 20次/分钟
-		SetupAuthRoutes(auth)
+		auth.Use(middleware.CustomRateLimitMiddleware(20, time.Minute))
+		SetupAuthRoutes(auth, container.AuthController)
 
-		// 用户路由（需要JWT认证）
-		SetupUserRoutes(api)
+		// 用户路由
+		SetupUserRoutes(api, container.UserController)
 	}
 
 	// 设置404和405处理器

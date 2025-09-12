@@ -14,9 +14,9 @@ type UserController struct {
 	userService *service.UserService
 }
 
-func NewUserController() *UserController {
+func NewUserController(userService *service.UserService) *UserController {
 	return &UserController{
-		userService: service.NewUserService(),
+		userService: userService,
 	}
 }
 
