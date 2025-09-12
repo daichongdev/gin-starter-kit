@@ -16,9 +16,8 @@ func SetupRouter() *gin.Engine {
 
 	// 使用我们的访问日志中间件替代默认的日志中间件
 	r.Use(middleware.AccessLogMiddleware())
-	r.Use(gin.Recovery())
 
-	// 添加全局错误处理中间件
+	// 添加全局错误处理中间件（包含panic恢复）
 	r.Use(middleware.ErrorHandlerMiddleware())
 
 	// 添加限流中间件
