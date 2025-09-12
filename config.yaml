@@ -18,7 +18,8 @@ server:
   
   # HTTP/2 配置
   http2:
-    max_concurrent_streams: 250
+    max_concurrent_streams: 150
+    idle_timeout: "180s"      # 增加空闲超时
     max_read_frame_size: 16384
     idle_timeout: "120s"
     max_upload_buffer_per_connection: 32768  # 32KB
@@ -46,9 +47,9 @@ database:
     charset: "utf8mb4"
     parse_time: true
     loc: "Local"
-    max_idle_conns: 50        # 增加空闲连接数
-    max_open_conns: 200       # 增加最大连接数
-    conn_max_lifetime: "1800s" # 减少连接生命周期
+    max_idle_conns: 20        # 根据实际负载调整
+    max_open_conns: 50        # 根据实际负载调整
+    conn_max_lifetime: "3600s" # 增加连接生命周期
     conn_max_idle_time: "900s" # 减少空闲时间
     dial_timeout: "10s"
     read_timeout: "30s"
